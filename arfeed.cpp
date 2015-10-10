@@ -44,9 +44,13 @@ void Connection::ConnectionCreate()
 struct hostent *server;
 struct sockaddr_in server_struct;
 
-
+try {
 server = gethostbyname (SERVER);
-
+}
+catch(...)
+{
+fprintf(stderr, "Cannot resolve hostname");
+}
 
 
 
@@ -58,11 +62,15 @@ if((socket_id=socket (AF_INET, SOCK_STREAM, 0))==-1)
 
 else
 {
+	
 	  server_struct.sin_family = AF_INET;
       server_struct.sin_port = htons (PORT);
 
+printf("ide\n");
       server_struct.sin_addr = *((struct in_addr *) server->h_addr);
+      
       bzero (&(server_struct.sin_zero), 8);
+
 
       if((connect (socket_id, (struct sockaddr *) &server_struct,sizeof (struct sockaddr)))==-1 )
         {

@@ -6,6 +6,7 @@
 #include <openssl/err.h>
 
 #define SERVER  "tools.ietf.org"
+#define FILE "/dailydose/dailydose_atom.xml"
 #define PORT 443
 
 
