@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include "arfeed.hpp"
+#include <fstream>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -15,102 +16,155 @@
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/bio.h>
 
 using namespace std;
-
-
 
 class Connection
 {
 	public:
+		BIO * bio;
+    	SSL * ssl;
+    	SSL_CTX * ctx;
 		int socket_id;
+		//load new file for each call 
+		int line_counter;
 		Command MyCommand;
 		Connection(Command);
-		void ConnectionCreate();
+		bool ConnectionCreate(char **,int);
 		void OpenSSL();
 		void TCPcreate();
+		bool URLparser();
+		bool ArgumentParser(int  , char **);
+		string  FeedFileParser();
 };
-
 Connection::Connection(Command MyCommand)
 {
 this->MyCommand=MyCommand;
+this->line_counter=0;
 }
-void Connection::ConnectionCreate()
+bool Connection::ConnectionCreate(char *argv[],int optind)
+{ 
+	if(MyCommand.fargv.empty())
+	{
+	// Saving URL address 
+	MyCommand.Url=argv[optind];
+	if(!URLparser())
+		return false;
+	}
+	else
+	{
+	//get the first address from feedfile
+	MyCommand.Url=FeedFileParser();
+	if(!URLparser())
+		return false;
+	}
+	return true;
+}
+
+string Connection::FeedFileParser()
 {
+if(MyCommand.fargv.empty() )
+		return "";
+try{	
+ifstream file(MyCommand.fargv.c_str());
+string line;
+int counter=-1;
+while( getline(file, line)){
+counter++;	
 
-/// Firstly establish TCP/IP connetion 
-
-/*create socket*/
-struct hostent *server;
-struct sockaddr_in server_struct;
-
-try {
-server = gethostbyname (SERVER);
+if(line.empty()){
+	line_counter++;
+	continue;
 }
-catch(...)
+
+if (counter==line_counter)
 {
-fprintf(stderr, "Cannot resolve hostname");
+	if (line.at(0)=='#')
+	{
+		line_counter++;
+		continue;
+	}
+	else{
+		line_counter++;
+		return line;
+	}
+}
+}
+}catch(...){fprintf(stderr, "Cannot open feedfile %s \n",MyCommand.fargv.c_str() );return "";}
+
+return "EOL";
 }
 
-
-
-if((socket_id=socket (AF_INET, SOCK_STREAM, 0))==-1)
+/**parsing URL address loading structure*/
+bool Connection::URLparser()
 {
-      fprintf(stderr, "Cannot create socket");
-      socket_id = 0;
-}
+string url=MyCommand.Url;
 
+if(url.find("http://")==0)
+{
+	MyCommand.protocol=HTTP;
+	url.erase(url.begin(),url.begin()+7);
+}
 else
 {
-	
-	  server_struct.sin_family = AF_INET;
-      server_struct.sin_port = htons (PORT);
-
-printf("ide\n");
-      server_struct.sin_addr = *((struct in_addr *) server->h_addr);
-      
-      bzero (&(server_struct.sin_zero), 8);
-
-
-      if((connect (socket_id, (struct sockaddr *) &server_struct,sizeof (struct sockaddr)))==-1 )
-        {
-          fprintf(stderr, "Cannot connect");
-          socket_id = 0;
-        }
+	if(url.find("https://")==0)
+	{
+		MyCommand.protocol=HTTPS;
+		url.erase(url.begin(),url.begin()+8);
+	}else MyCommand.protocol=HTTP;
 }
-
-}
-
-
-int main(int argc , char *argv[])
+//get file from url
+int pos; 
+if((pos=url.find("/"))!=-1)
 {
-  int c;
-  Command MyCommand;
-  Connection Atom(MyCommand);
+	MyCommand.file=url.substr(pos+1);
+	url.erase(url.begin()+pos,url.end());
+}else return false;
 
-  while ((c = getopt (argc, argv, "f:c:C:ITau")) != -1)
+if((pos=url.find(":"))!=-1)
+{
+	MyCommand.port=atoi((url.substr(pos+1)).c_str());
+	url.erase(url.begin()+pos,url.end());
+	if((MyCommand.port==80 && MyCommand.protocol!=HTTP) || (MyCommand.port==443 && MyCommand.protocol!=HTTPS) || (MyCommand.port!=443 && MyCommand.port!=80 ))
+		return false;
+}
+MyCommand.port=MyCommand.protocol;
+MyCommand.server=url;
+return true;
+}
+
+
+
+
+
+bool Connection::ArgumentParser(int argc , char *argv[])
+{
+int c ;
+
+while ((c = getopt (argc, argv, "f:c:C:ITau")) != -1)
     switch (c)
     {
 	      case 'f':
-	      	Atom.MyCommand.fargv=new  char[strlen(optarg)];
+	      	MyCommand.fargv=optarg;
 	        break;
 	      case 'c':
-	      	Atom.MyCommand.cargv=new  char[strlen(optarg)];
+	      	MyCommand.cargv=optarg;
 	        break;
 	      case 'C':
-	        Atom.MyCommand.Cargv=new  char[strlen(optarg)];
+	        MyCommand.Cargv=optarg;
 	        break;
 		  case 'I':
-		  	Atom.MyCommand.Iflag=true;
+		  	MyCommand.Iflag=true;
 		    break;
 		  case 'T':
-		  	Atom.MyCommand.Tflag=true;
+		  	MyCommand.Tflag=true;
 		    break;
 		  case 'a':
-		  	Atom.MyCommand.aflag=true;
+		  	MyCommand.aflag=true;
 		    break;
 		  case 'u':
-		 	Atom.MyCommand.uflag=true;
+		 	MyCommand.uflag=true;
 		    break;
 	      case '?':
 	        if ((optopt == 'f')  || (optopt == 'c')|| (optopt == 'C'))
@@ -120,24 +174,33 @@ int main(int argc , char *argv[])
 	        else
 	          fprintf (stderr,
 	                   "Unknown option character `\\x%x'.\n",optopt);
-	        return 1;
+	        return false;
 	      default:
 	      		fprintf (stderr, "Wrong Input");
-	      		return 0;
+	      		return false;
     }
-if(optind+1!=argc)
+if(optind+1!=argc and MyCommand.fargv.empty())
 {
 	fprintf(stderr,"Wrong input \n");
-	return 0;
+	return false;
 }
-// Saving URL address 
-Atom.MyCommand.Url=new char[strlen(argv[optind])];
-Atom.MyCommand.Url=argv[optind];
-Atom.ConnectionCreate();
+
+	return true;
+}
 
 
 
 
 
-  return 0;
+
+int main(int argc , char *argv[])
+{
+	Command MyCommand;
+	Connection Atom(MyCommand);
+  	if(!Atom.ArgumentParser(argc,argv))
+  		return -1; 
+
+  	printf("%i \n",Atom.ConnectionCreate(argv,optind));
+
+  	return 0;
 }

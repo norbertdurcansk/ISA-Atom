@@ -29,7 +29,7 @@ int create_socket(char[], BIO *);
 
 int main() {
 
-  char           dest_url[] = "https://www.theregister.co.uk";
+  char           dest_url[] = "https://verisign.com";
   BIO              *certbio = NULL;
   BIO               *outbio = NULL;
   X509                *cert = NULL;
@@ -81,15 +81,6 @@ int main() {
    * ---------------------------------------------------------- */
   ssl = SSL_new(ctx);
 
-
-if(! SSL_CTX_load_verify_locations(ctx, "/etc/ssl/certs", NULL))
-{
-    /* Handle failed load here */
-}
-
-
-SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
-
   /* ---------------------------------------------------------- *
    * Make the underlying TCP socket connection                  *
    * ---------------------------------------------------------- */
@@ -110,28 +101,6 @@ SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
   else
     BIO_printf(outbio, "Successfully enabled SSL/TLS session to: %s.\n", dest_url);
 
-
-
-if(SSL_get_verify_result(ssl) != X509_V_OK)
-{
-    /* Handle the failed verification */
-}
-
-
-
-
-char *reply="GET /software/headlines.atom\r\n\r\n";
-SSL_write(ssl, reply, strlen(reply)); 
-
-char buf[5000];
-SSL_read(ssl, buf, sizeof(buf)); 
-printf("%s toto prislo\n",buf );
-
-
-
-
-
-
   /* ---------------------------------------------------------- *
    * Get the remote certificate into the X509 structure         *
    * ---------------------------------------------------------- */
@@ -147,20 +116,26 @@ printf("%s toto prislo\n",buf );
   certname = X509_NAME_new();
   certname = X509_get_subject_name(cert);
 
+
+
+if(! SSL_CTX_load_verify_locations(ctx, "TrustStore.pem", NULL))
+    {
+        fprintf(stderr, "Error loading trust store\n");
+        return 0;
+    }
+
+
+
+
+
+
+
   /* ---------------------------------------------------------- *
    * display the cert subject here                              *
    * -----------------------------------------------------------*/
   BIO_printf(outbio, "Displaying the certificate subject data:\n");
   X509_NAME_print_ex(outbio, certname, 0, 0);
   BIO_printf(outbio, "\n");
-
-
-
-
-
-
-
-
 
 
   /* ---------------------------------------------------------- *
