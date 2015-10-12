@@ -59,7 +59,7 @@ bool Connection::SSLdownload()
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
 
-	if (!SSL_CTX_load_verify_locations(ctx, NULL, "/home/norbert/Desktop/certs"))
+	if (!SSL_CTX_load_verify_locations(ctx, NULL, "/home/isa2015/Desktop/certs"))
     {
         fprintf(stderr, "Error loading trust store\n");
         ERR_print_errors_fp(stderr);
@@ -78,14 +78,14 @@ bool Connection::SSLdownload()
 	struct hostent *hostp;
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = PF_INET;
-	hostp=gethostbyname("www.verisign.com");
+	hostp=gethostbyname("tools.ietf.org");
 	if(hostp == (struct hostent *)NULL)
 	{
 		 fprintf(stderr,"Hostname not found");
 		 exit(3);	 
 	}
 	memcpy(&servaddr.sin_addr, hostp->h_addr, sizeof(servaddr.sin_addr)); //server provided by client 
-	servaddr.sin_port=htons(atoi("80"));  //port provided by user 
+	servaddr.sin_port=htons(atoi("443"));  //port provided by user 
 	int n;
 	if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))==-1)
 	{
@@ -101,14 +101,19 @@ bool Connection::SSLdownload()
     if ( SSL_connect(ssl) != 1 )
      	printf("error\n");
 
+
     if(SSL_get_peer_certificate(ssl) != NULL){
 
     if(SSL_get_verify_result(ssl) != X509_V_OK){
         std::cout << "error no = "<< std::endl;
     }
+
+
+
+
 }
 char r[1024];
-char * re = "GET / HTTP/1.1\x0D\x0AHost: www.verisign.com\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
+char * re = "GET /dailydose/dailydose_atom.xml HTTP/1.1\x0D\x0AHost: tools.ietf.org\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
 printf("%i\n",SSL_write(ssl,re,strlen(re)));
 int p;
 for(;;)
@@ -122,15 +127,13 @@ for(;;)
 
   SSL_free(ssl);
   close(sockfd);
-    SSL_CTX_free(ctx);
+  SSL_CTX_free(ctx);
 
 
 
 
 
-
-
-
+close(sockfd);
 
 
 
