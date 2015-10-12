@@ -65,48 +65,76 @@ bool Connection::SSLdownload()
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(ctx);
         return false;
-    }
+}
 
-    bio = BIO_new_ssl_connect(ctx);
-   BIO_get_ssl(bio, & ssl);
-   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+	int sockfd;
+	struct sockaddr_in servaddr;
 
-	bio = BIO_new_connect("www.theregister.co.uk:https");
-
-    if(BIO_do_connect(bio) <= 0)
+    if((sockfd = socket(AF_INET, SOCK_STREAM, 0))<0)
     {
-        fprintf(stderr, "Error attempting to connect\n");
-        ERR_print_errors_fp(stderr);
-        BIO_free_all(bio);
-        SSL_CTX_free(ctx);
-        return false;
-    }
+       fprintf(stderr,"ERROR opening socket");
+       exit(1);
+	}
+	struct hostent *hostp;
+	bzero(&servaddr,sizeof(servaddr));
+	servaddr.sin_family = PF_INET;
+	hostp=gethostbyname("www.verisign.com");
+	if(hostp == (struct hostent *)NULL)
+	{
+		 fprintf(stderr,"Hostname not found");
+		 exit(3);	 
+	}
+	memcpy(&servaddr.sin_addr, hostp->h_addr, sizeof(servaddr.sin_addr)); //server provided by client 
+	servaddr.sin_port=htons(atoi("80"));  //port provided by user 
+	int n;
+	if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))==-1)
+	{
+		fprintf(stderr,"Unable to connect");
+		exit(1);
+	}else(printf("TCP/IP connection created \n"));
 
-if(SSL_get_peer_certificate(ssl) != NULL){
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
+	ssl = SSL_new(ctx);
+    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+    SSL_set_fd(ssl, sockfd);
+
+    if ( SSL_connect(ssl) != 1 )
+     	printf("error\n");
+
+    if(SSL_get_peer_certificate(ssl) != NULL){
+
     if(SSL_get_verify_result(ssl) != X509_V_OK){
         std::cout << "error no = "<< std::endl;
     }
 }
+char r[1024];
+char * re = "GET / HTTP/1.1\x0D\x0AHost: www.verisign.com\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
+printf("%i\n",SSL_write(ssl,re,strlen(re)));
 int p;
-//HTTP/1.1\x0D\x0AHost: www.theregister.co.uk\x0D\x0A\x0D\x0A
-    char * request = "GET https://www.theregister.co.uk:443/hardware/headlines.atom \x0D\x0AHost: www.theregister.co.uk\x0D\x0AConnection: keep-alive\x0D\x0AAccept-Encoding: gzip, deflate\x0D\x0ACookie: __cfduid=dcc1a6a8acbb4efd12442585d8ba257c81444509763; __gads=ID=ccfae09049777e55:T=1444509769:S=ALNI_MZAE0a2O8wXpyx35UH0_WT03Pb3dQ\x0D\x0A\x0D\x0A";
-    char r[1024];
-
-
-BIO_write(bio, request, strlen(request));
 for(;;)
     {
-        p = BIO_read(bio, r, 1023);
+        p = SSL_read(ssl, r, 1023);
         if(p <= 0) break;
         r[p] = 0;
         printf("%s", r);
 
     }
-printf("tu sme \n");
-    /* Close the connection and free the context */
 
-    BIO_free_all(bio);
+  SSL_free(ssl);
+  close(sockfd);
     SSL_CTX_free(ctx);
+
+
+
+
+
+
+
+
+
+
+
+
 
 	return true;
 }
