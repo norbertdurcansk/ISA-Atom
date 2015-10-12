@@ -30,19 +30,87 @@ class Connection
 		//load new file for each call 
 		int line_counter;
 		Command MyCommand;
+
+
+
+
 		Connection(Command);
 		bool ConnectionCreate(char **,int);
-		void OpenSSL();
-		void TCPcreate();
 		bool URLparser();
 		bool ArgumentParser(int  , char **);
 		string  FeedFileParser();
+		bool SSLdownload();
+
 };
+
+
 Connection::Connection(Command MyCommand)
 {
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
+bool Connection::SSLdownload()
+{
+	SSL_library_init();
+	ERR_load_BIO_strings();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+
+
+	ctx = SSL_CTX_new(SSLv23_client_method());
+
+	if (!SSL_CTX_load_verify_locations(ctx, NULL, "/home/norbert/Desktop/certs"))
+    {
+        fprintf(stderr, "Error loading trust store\n");
+        ERR_print_errors_fp(stderr);
+        SSL_CTX_free(ctx);
+        return false;
+    }
+
+    bio = BIO_new_ssl_connect(ctx);
+   BIO_get_ssl(bio, & ssl);
+   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+
+	bio = BIO_new_connect("www.theregister.co.uk:https");
+
+    if(BIO_do_connect(bio) <= 0)
+    {
+        fprintf(stderr, "Error attempting to connect\n");
+        ERR_print_errors_fp(stderr);
+        BIO_free_all(bio);
+        SSL_CTX_free(ctx);
+        return false;
+    }
+
+if(SSL_get_peer_certificate(ssl) != NULL){
+    if(SSL_get_verify_result(ssl) != X509_V_OK){
+        std::cout << "error no = "<< std::endl;
+    }
+}
+int p;
+//HTTP/1.1\x0D\x0AHost: www.theregister.co.uk\x0D\x0A\x0D\x0A
+    char * request = "GET https://www.theregister.co.uk:443/hardware/headlines.atom \x0D\x0AHost: www.theregister.co.uk\x0D\x0AConnection: keep-alive\x0D\x0AAccept-Encoding: gzip, deflate\x0D\x0ACookie: __cfduid=dcc1a6a8acbb4efd12442585d8ba257c81444509763; __gads=ID=ccfae09049777e55:T=1444509769:S=ALNI_MZAE0a2O8wXpyx35UH0_WT03Pb3dQ\x0D\x0A\x0D\x0A";
+    char r[1024];
+
+
+BIO_write(bio, request, strlen(request));
+for(;;)
+    {
+        p = BIO_read(bio, r, 1023);
+        if(p <= 0) break;
+        r[p] = 0;
+        printf("%s", r);
+
+    }
+printf("tu sme \n");
+    /* Close the connection and free the context */
+
+    BIO_free_all(bio);
+    SSL_CTX_free(ctx);
+
+	return true;
+}
+
 bool Connection::ConnectionCreate(char *argv[],int optind)
 { 
 	if(MyCommand.fargv.empty())
@@ -59,6 +127,7 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 	if(!URLparser())
 		return false;
 	}
+	SSLdownload();
 	return true;
 }
 
@@ -129,7 +198,6 @@ if((pos=url.find(":"))!=-1)
 	if((MyCommand.port==80 && MyCommand.protocol!=HTTP) || (MyCommand.port==443 && MyCommand.protocol!=HTTPS) || (MyCommand.port!=443 && MyCommand.port!=80 ))
 		return false;
 }
-MyCommand.port=MyCommand.protocol;
 MyCommand.server=url;
 return true;
 }

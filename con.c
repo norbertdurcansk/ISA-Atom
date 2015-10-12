@@ -124,14 +124,8 @@ if(! SSL_CTX_load_verify_locations(ctx, "TrustStore.pem", NULL))
         return 0;
     }
 
-
-
-
-
-
-
-  /* ---------------------------------------------------------- *
-   * display the cert subject here                              *
+  /* --------------------------------------------------------- *
+   * display th cert subject here                              *
    * -----------------------------------------------------------*/
   BIO_printf(outbio, "Displaying the certificate subject data:\n");
   X509_NAME_print_ex(outbio, certname, 0, 0);

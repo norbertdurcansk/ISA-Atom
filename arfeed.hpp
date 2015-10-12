@@ -6,8 +6,10 @@
 #include <openssl/err.h>
 #include <string>
 #include <iostream>
-#define HTTP 80
-#define HTTPS 443
+#define HTTP ":http"
+#define HTTPS ":https"
+#define DEFAULTDIR "/etc/ssl/certs"
+
 
 /**
 HEADER FILE
@@ -26,7 +28,7 @@ bool uflag=false;
 std::string server="";
 int port=0;
 std::string file="";
-int protocol;
+std::string protocol;
 std::string fargv="";
 std::string Cargv="";
 std::string cargv="";
