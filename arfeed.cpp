@@ -68,7 +68,7 @@ bool Connection::SSLdownload()
 
     int p;
 
-       char * request = "GET /dailydose HTTP/1.1\x0D\x0AHost: tools.ietf.org\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
+    char * request = "GET /dailydose/dailydose_atom.xml HTTP/1.1\x0D\x0AHost: tools.ietf.org\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
     char r[1024];
     /* Set up the library */
     SSL_library_init();
@@ -89,10 +89,6 @@ bool Connection::SSLdownload()
         SSL_CTX_free(ctx);
         return 0;
     }
-
-
-
-
 
     /* Setup the connection */
     bio = BIO_new_ssl_connect(ctx);
