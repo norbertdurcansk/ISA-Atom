@@ -40,6 +40,8 @@ class Connection
 		bool ArgumentParser(int  , char **);
 		string  FeedFileParser();
 		bool SSLdownload();
+		bool TCPdownload();
+
 
 };
 
@@ -49,98 +51,105 @@ Connection::Connection(Command MyCommand)
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
+bool Connection::TCPdownload()
+{
+
+	return true;
+
+}
+
 bool Connection::SSLdownload()
 {
-	SSL_library_init();
-	ERR_load_BIO_strings();
+
+    
+    BIO * bio;
+    SSL * ssl;
+    SSL_CTX * ctx;
+
+    int p;
+
+       char * request = "GET /dailydose HTTP/1.1\x0D\x0AHost: tools.ietf.org\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
+    char r[1024];
+    /* Set up the library */
+    SSL_library_init();
+    ERR_load_BIO_strings();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
 
+    /* Set up the SSL context */
 
-	ctx = SSL_CTX_new(SSLv23_client_method());
+  ctx = SSL_CTX_new(SSLv23_client_method());
 
-	if (!SSL_CTX_load_verify_locations(ctx, NULL, "/home/isa2015/Desktop/certs"))
+
+
+  if(! SSL_CTX_load_verify_locations(ctx,NULL,"/etc/ssl/certs"))
     {
         fprintf(stderr, "Error loading trust store\n");
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(ctx);
-        return false;
-}
-
-	int sockfd;
-	struct sockaddr_in servaddr;
-
-    if((sockfd = socket(AF_INET, SOCK_STREAM, 0))<0)
-    {
-       fprintf(stderr,"ERROR opening socket");
-       exit(1);
-	}
-	struct hostent *hostp;
-	bzero(&servaddr,sizeof(servaddr));
-	servaddr.sin_family = PF_INET;
-	hostp=gethostbyname("tools.ietf.org");
-	if(hostp == (struct hostent *)NULL)
-	{
-		 fprintf(stderr,"Hostname not found");
-		 exit(3);	 
-	}
-	memcpy(&servaddr.sin_addr, hostp->h_addr, sizeof(servaddr.sin_addr)); //server provided by client 
-	servaddr.sin_port=htons(atoi("443"));  //port provided by user 
-	int n;
-	if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))==-1)
-	{
-		fprintf(stderr,"Unable to connect");
-		exit(1);
-	}else(printf("TCP/IP connection created \n"));
-
-	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
-	ssl = SSL_new(ctx);
-    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
-    SSL_set_fd(ssl, sockfd);
-
-    if ( SSL_connect(ssl) != 1 )
-     	printf("error\n");
-
-
-    if(SSL_get_peer_certificate(ssl) != NULL){
-
-    if(SSL_get_verify_result(ssl) != X509_V_OK){
-        std::cout << "error no = "<< std::endl;
+        return 0;
     }
 
 
 
 
-}
-char r[1024];
-char * re = "GET /dailydose/dailydose_atom.xml HTTP/1.1\x0D\x0AHost: tools.ietf.org\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
-printf("%i\n",SSL_write(ssl,re,strlen(re)));
-int p;
-for(;;)
+
+    /* Setup the connection */
+    bio = BIO_new_ssl_connect(ctx);
+    /* Set the SSL_MODE_AUTO_RETRY flag */
+
+    BIO_get_ssl(bio, & ssl);
+    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+
+    /* Create and setup the connection */
+
+    BIO_set_conn_hostname(bio,"tools.ietf.org:https");
+
+    if(BIO_do_connect(bio) <= 0)
     {
-        p = SSL_read(ssl, r, 1023);
+        fprintf(stderr, "Error attempting to connect\n");
+        ERR_print_errors_fp(stderr);
+        BIO_free_all(bio);
+        SSL_CTX_free(ctx);
+        return 0;
+    }
+    //SSL_set_connect_state(ssl); 
+
+	SSL_do_handshake(ssl); 
+
+    /* Check the certificate */
+
+    if(SSL_get_verify_result(ssl) != X509_V_OK)
+    {
+        fprintf(stderr, "Certificate verification error: %i\n", SSL_get_verify_result(ssl));
+        BIO_free_all(bio);
+        SSL_CTX_free(ctx);
+        return 0;
+    }
+
+    /* Send the request */
+
+    BIO_write(bio, request, strlen(request));
+
+    /* Read in the response */
+
+    for(;;)
+    {
+        p = BIO_read(bio, r, 1023);
         if(p <= 0) break;
         r[p] = 0;
         printf("%s", r);
-
     }
 
-  SSL_free(ssl);
-  close(sockfd);
-  SSL_CTX_free(ctx);
+    /* Close the connection and free the context */
 
-
-
-
-
-close(sockfd);
-
-
-
-
-
+    BIO_free_all(bio);
+    SSL_CTX_free(ctx);
 	return true;
 }
+
+
+
 
 bool Connection::ConnectionCreate(char *argv[],int optind)
 { 
@@ -158,8 +167,17 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 	if(!URLparser())
 		return false;
 	}
-	SSLdownload();
+int ret;
+if(MyCommand.protocol==HTTP)
+	ret=TCPdownload();
+else
+	ret=SSLdownload();
+	
+
+if(ret)
 	return true;
+else
+	return false;
 }
 
 string Connection::FeedFileParser()
@@ -237,6 +255,28 @@ return true;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool Connection::ArgumentParser(int argc , char *argv[])
 {
 int c ;
@@ -278,12 +318,11 @@ while ((c = getopt (argc, argv, "f:c:C:ITau")) != -1)
 	      		fprintf (stderr, "Wrong Input");
 	      		return false;
     }
-if(optind+1!=argc and MyCommand.fargv.empty())
+if((optind+1!=argc and MyCommand.fargv.empty()) || (!MyCommand.cargv.empty() and !MyCommand.Cargv.empty()))
 {
 	fprintf(stderr,"Wrong input \n");
 	return false;
 }
-
 	return true;
 }
 

@@ -7,7 +7,6 @@
 
 int main()
 {
- printf("ide");
 
 
     BIO * bio;
@@ -16,11 +15,11 @@ int main()
 
     int p;
 
-    char * request = "GET / HTTP/1.1\x0D\x0AHost: www.verisign.com\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
+       char * request = "GET /feed.atom HTTP/1.1\x0D\x0AHost: what-if.xkcd.com\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
     char r[1024];
 
     /* Set up the library */
-
+    SSL_library_init();
     ERR_load_BIO_strings();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
@@ -31,7 +30,7 @@ int main()
 
     /* Load the trust store */
 	
-    if(! SSL_CTX_load_verify_locations(ctx, "TrustStore.pem", NULL))
+    if(! SSL_CTX_load_verify_locations(ctx, NULL,"/etc/ssl/certs"))
     {
         fprintf(stderr, "Error loading trust store\n");
         ERR_print_errors_fp(stderr);
@@ -40,9 +39,7 @@ int main()
     }
 
     /* Setup the connection */
-
     bio = BIO_new_ssl_connect(ctx);
-
     /* Set the SSL_MODE_AUTO_RETRY flag */
 
     BIO_get_ssl(bio, & ssl);
@@ -50,7 +47,7 @@ int main()
 
     /* Create and setup the connection */
 
-    BIO_set_conn_hostname(bio, "www.verisign.com:https");
+    BIO_set_conn_hostname(bio, "what-if.xkcd.com:https");
 
     if(BIO_do_connect(bio) <= 0)
     {
