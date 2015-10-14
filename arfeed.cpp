@@ -230,8 +230,10 @@ else
 	{
 		MyCommand.protocol=HTTPS;
 		url.erase(url.begin(),url.begin()+8);
-	}else MyCommand.protocol=HTTP;
+	}else MyCommand.protocol="";
 }
+
+
 //get file from url
 int pos; 
 if((pos=url.find("/"))!=-1)
@@ -244,29 +246,17 @@ if((pos=url.find(":"))!=-1)
 {
 	MyCommand.port=atoi((url.substr(pos+1)).c_str());
 	url.erase(url.begin()+pos,url.end());
-	if((MyCommand.port==80 && MyCommand.protocol!=HTTP) || (MyCommand.port==443 && MyCommand.protocol!=HTTPS) || (MyCommand.port!=443 && MyCommand.port!=80 ))
+
+	if((MyCommand.port==80 && MyCommand.protocol==HTTPS) || (MyCommand.port==443 && MyCommand.protocol==HTTP) || (MyCommand.port!=443 && MyCommand.port!=80 ))
 		return false;
+	if(MyCommand.port==80 && MyCommand.protocol=="")
+		MyCommand.protocol=HTTP;
+	if(MyCommand.port==443 && MyCommand.protocol=="")
+		MyCommand.protocol=HTTPS;
 }
 MyCommand.server=url;
 return true;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
