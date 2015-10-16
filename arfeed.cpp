@@ -27,13 +27,9 @@ class Connection
     	SSL * ssl;
     	SSL_CTX * ctx;
 		int socket_id;
-		//load new file for each call 
 		int line_counter;
 		Command MyCommand;
-
-
-
-
+		string Feed;
 		Connection(Command);
 		bool ConnectionCreate(char **,int);
 		bool URLparser();
@@ -41,19 +37,62 @@ class Connection
 		string  FeedFileParser();
 		bool SSLdownload();
 		bool TCPdownload();
-
-
 };
-
-
 Connection::Connection(Command MyCommand)
 {
+
+
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
+
 bool Connection::TCPdownload()
 {
+	BIO * bio;
+    int p;
+	string link;
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+ MyCommand.server+"\r\nConnection: Close\r\n\r\n";
+   
+    char r[1024];
+    /* Set up the library */
+    ERR_load_BIO_strings();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
 
+
+        /* Create and setup the connection */
+    string hey=MyCommand.server+":80";
+    char* con = new char[hey.length() + 1];
+    copy(hey.begin(), hey.end(), con);
+
+
+    bio = BIO_new_connect(con);
+    if(bio == NULL) 
+    {
+    	 fprintf(stderr,"Cannot create bio structure\n"); 
+    	 return false; 
+    }
+
+    if(BIO_do_connect(bio) <= 0)
+    {
+        ERR_print_errors_fp(stderr);
+        BIO_free_all(bio);
+        return false;
+    }
+
+    BIO_write(bio, link.c_str(), strlen(link.c_str()));
+
+    for(;;)
+    {
+        p = BIO_read(bio, r, 1023);
+        if(p <= 0) break;
+        r[p] = 0;
+        Feed+=string(r);
+       
+    }
+ 	printf("%s", Feed.c_str());
+
+    BIO_free_all(bio);
 	return true;
 
 }
@@ -68,7 +107,9 @@ bool Connection::SSLdownload()
 
     int p;
 
-    char * request = "GET /dailydose/dailydose_atom.xml HTTP/1.1\x0D\x0AHost: tools.ietf.org\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
+	string link;
+	link="GET /"+MyCommand.file+" HTTP/1.1\x0D\x0AHost: "+ MyCommand.server+"\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
+   
     char r[1024];
     /* Set up the library */
     SSL_library_init();
@@ -76,11 +117,14 @@ bool Connection::SSLdownload()
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
 
+   /* Create and setup the connection */
+    string hey=MyCommand.server+":443";
+    char* con = new char[hey.length() + 1];
+    copy(hey.begin(), hey.end(), con);
+
     /* Set up the SSL context */
 
   ctx = SSL_CTX_new(SSLv23_client_method());
-
-
 
   if(! SSL_CTX_load_verify_locations(ctx,NULL,"/etc/ssl/certs"))
     {
@@ -99,7 +143,7 @@ bool Connection::SSLdownload()
 
     /* Create and setup the connection */
 
-    BIO_set_conn_hostname(bio,"tools.ietf.org:https");
+    BIO_set_conn_hostname(bio,con);
 
     if(BIO_do_connect(bio) <= 0)
     {
@@ -124,8 +168,7 @@ bool Connection::SSLdownload()
     }
 
     /* Send the request */
-
-    BIO_write(bio, request, strlen(request));
+    BIO_write(bio, link.c_str(), strlen(link.c_str()));
 
     /* Read in the response */
 
@@ -134,9 +177,10 @@ bool Connection::SSLdownload()
         p = BIO_read(bio, r, 1023);
         if(p <= 0) break;
         r[p] = 0;
-        printf("%s", r);
-    }
+        Feed+=string(r);
 
+    }
+    printf("%s", Feed.c_str());
     /* Close the connection and free the context */
 
     BIO_free_all(bio);
@@ -253,14 +297,6 @@ if((pos=url.find(":"))!=-1)
 MyCommand.server=url;
 return true;
 }
-
-
-
-
-
-
-
-
 
 
 bool Connection::ArgumentParser(int argc , char *argv[])
