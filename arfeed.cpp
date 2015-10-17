@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include "arfeed.hpp"
 #include <fstream>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -37,6 +40,7 @@ class Connection
 		string  FeedFileParser();
 		bool SSLdownload();
 		bool TCPdownload();
+		bool Feedparser();
 };
 Connection::Connection(Command MyCommand)
 {
@@ -45,6 +49,51 @@ Connection::Connection(Command MyCommand)
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
+bool Connection::Feedparser()
+{
+//remove header
+//printf("%s\n",Feed.c_str() );
+/*
+xmlDocPtr doc;
+doc=xmlParseMemory(Feed.c_str(),Feed.length());
+
+ xmlNode *root = NULL;
+  root = xmlDocGetRootElement(doc);
+  
+  // --------------------------------------------------------------------------
+  // Must have root element, a name and the name must be "AppConfigData"
+  // --------------------------------------------------------------------------
+  
+  
+      printf("%s\n", root->name ) ;
+  
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	return true;
+}
+
+
+
+
+
+
+
 
 bool Connection::TCPdownload()
 {
@@ -61,7 +110,7 @@ bool Connection::TCPdownload()
 
 
         /* Create and setup the connection */
-    string hey=MyCommand.server+":80";
+    string hey=MyCommand.server+":http";
     char* con = new char[hey.length() + 1];
     copy(hey.begin(), hey.end(), con);
 
@@ -90,9 +139,11 @@ bool Connection::TCPdownload()
         Feed+=string(r);
        
     }
- 	printf("%s", Feed.c_str());
-
+ 
     BIO_free_all(bio);
+
+    Feedparser();
+
 	return true;
 
 }
@@ -180,11 +231,12 @@ bool Connection::SSLdownload()
         Feed+=string(r);
 
     }
-    printf("%s", Feed.c_str());
+    
     /* Close the connection and free the context */
 
     BIO_free_all(bio);
     SSL_CTX_free(ctx);
+    Feedparser();
 	return true;
 }
 
