@@ -19,6 +19,15 @@ HEADER FILE
 /**
 Program commandline structure for ATOM-file requests
 */
+typedef struct entry
+{
+std::string type="";
+std::string title="";
+std::string url="";
+std::string	update="";
+std::string author="";
+}entry;
+
 typedef struct Command
 {
 std::string Url="";	

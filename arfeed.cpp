@@ -5,10 +5,9 @@
 #include <unistd.h>
 #include "arfeed.hpp"
 #include <fstream>
+#include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
-
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
@@ -33,6 +32,9 @@ class Connection
 		int line_counter;
 		Command MyCommand;
 		string Feed;
+		xmlDocPtr doc;
+		entry *entryarr;
+
 		Connection(Command);
 		bool ConnectionCreate(char **,int);
 		bool URLparser();
@@ -41,6 +43,7 @@ class Connection
 		bool SSLdownload();
 		bool TCPdownload();
 		bool Feedparser();
+		bool Parse(xmlNodePtr,int*,bool,string);
 };
 Connection::Connection(Command MyCommand)
 {
@@ -49,40 +52,133 @@ Connection::Connection(Command MyCommand)
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
+
+
+
+bool Connection::Parse(xmlNodePtr root,int *index, bool count,string name)
+{
+xmlNodePtr current;
+xmlChar* contt;
+int i=*index;
+
+
+if(count)
+{
+	for(current=root->children;current!=NULL;current=current->next)
+	{	
+		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "entry" ) ) )  
+			(*index)++;
+
+		if(current->type==XML_ELEMENT_NODE)
+		{
+			Parse(current,index,count,name);
+		}
+	}
+
+}
+else
+{
+	for(current=root->children;current!=NULL;current=current->next)
+	{
+		
+
+
+		if(current->type==XML_ELEMENT_NODE)
+		{
+
+
+		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "entry" ) ) ) 
+			(*index)++;
+
+
+		i=*index;
+		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "id" ) ) ) 
+		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+			entryarr[i].url=(char*)contt;
+			xmlFree(contt);
+		}
+				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "title" ) ) ) 
+		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+			entryarr[i].title=(char*)contt;
+			xmlFree(contt);
+		}
+				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "name" ) ) ) 
+		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+			entryarr[i].author=(char*)contt;
+			xmlFree(contt);
+		}
+				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "updated" ) ) ) 
+		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+			entryarr[i].update=(char*)contt;
+			xmlFree(contt);
+		}
+
+		if((*index)==0)
+			entryarr[i].type="feed";
+		else
+			entryarr[i].type="entry";
+
+		//	printf("%s\n",current->name);
+			Parse(current,index,count,name);
+
+
+
+		}
+	}
+}
+
+return true;
+}
+
+
 bool Connection::Feedparser()
 {
-//remove header
-//printf("%s\n",Feed.c_str() );
-/*
-xmlDocPtr doc;
-doc=xmlParseMemory(Feed.c_str(),Feed.length());
+if(Feed.find("HTTP/1.1 200 OK")!=0)
+	return false;
 
- xmlNode *root = NULL;
+//remove the header
+Feed=Feed.substr(Feed.find("\r\n\r\n"));
+Feed.erase(Feed.begin(),Feed.begin()+4);
+
+
+  doc = xmlParseMemory(Feed.c_str(),Feed.length());
+
+  if (doc == NULL) 
+        fprintf(stderr,"error: could not parse document\n");
+  
+
+  xmlNodePtr root;
+ 
   root = xmlDocGetRootElement(doc);
-  
-  // --------------------------------------------------------------------------
-  // Must have root element, a name and the name must be "AppConfigData"
-  // --------------------------------------------------------------------------
-  
-  
-      printf("%s\n", root->name ) ;
-  
-*/
+  if(root==NULL)
+  	return false;
+
+printf("\n\n\n\n\n");
+
+int pocet=0;
+string name="";
+//give me number of entries to create 
+Parse(root,&pocet,true,name);
+entryarr=new entry[pocet+5];
+int index=0;
+Parse(root,&index,false,name);
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
+int x=0;
+while(entryarr[x].type!="")
+{
+printf("%s type\n",entryarr[x].type.c_str() );	
+printf("%s title\n",entryarr[x].title.c_str() );
+//printf("%s author\n",entryarr[x].author.c_str() );
+if(entryarr[x].update!="")
+printf("%s update \n",entryarr[x].update.c_str() );
+printf("%s url \n\n",entryarr[x].url.c_str() );
+	x++;
+}
 
 
 	return true;
@@ -100,7 +196,8 @@ bool Connection::TCPdownload()
 	BIO * bio;
     int p;
 	string link;
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+ MyCommand.server+"\r\nConnection: Close\r\n\r\n";
+	printf("%s %s\n",MyCommand.file.c_str(),MyCommand.server.c_str() );
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: OpenSSL\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
    
     char r[1024];
     /* Set up the library */
@@ -110,7 +207,7 @@ bool Connection::TCPdownload()
 
 
         /* Create and setup the connection */
-    string hey=MyCommand.server+":http";
+    string hey=MyCommand.server+":80";
     char* con = new char[hey.length() + 1];
     copy(hey.begin(), hey.end(), con);
 
@@ -141,10 +238,10 @@ bool Connection::TCPdownload()
     }
  
     BIO_free_all(bio);
+   if(Feedparser())
+		return true;
 
-    Feedparser();
-
-	return true;
+return false;
 
 }
 
@@ -159,8 +256,7 @@ bool Connection::SSLdownload()
     int p;
 
 	string link;
-	link="GET /"+MyCommand.file+" HTTP/1.1\x0D\x0AHost: "+ MyCommand.server+"\x0D\x0A\x43onnection: Close\x0D\x0A\x0D\x0A";
-   
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: OpenSSL\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
     char r[1024];
     /* Set up the library */
     SSL_library_init();
@@ -236,8 +332,11 @@ bool Connection::SSLdownload()
 
     BIO_free_all(bio);
     SSL_CTX_free(ctx);
-    Feedparser();
-	return true;
+
+   if(Feedparser())
+		return true;
+	
+return false;
 }
 
 
