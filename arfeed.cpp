@@ -52,8 +52,20 @@ Connection::Connection(Command MyCommand)
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
-
-
+string Replace( string Str)
+{
+int indexs=0;
+while (true) {
+     /* Locate the substring to replace. */
+     indexs = Str.find("axxd", indexs);
+     if (indexs == std::string::npos) break;
+     /* Make the replacement. */
+     Str.replace(indexs, 4, "&");
+     /* Advance index forward so the next iteration doesn't pick it up as well. */
+     indexs += 1;
+}
+return Str;
+}
 
 bool Connection::Parse(xmlNodePtr root,int *index, bool count,string name)
 {
@@ -74,15 +86,12 @@ if(count)
 			Parse(current,index,count,name);
 		}
 	}
-
 }
 else
 {
 	for(current=root->children;current!=NULL;current=current->next)
 	{
 		
-
-
 		if(current->type==XML_ELEMENT_NODE)
 		{
 
@@ -95,21 +104,25 @@ else
 		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "id" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].url=(char*)contt;
+			entryarr[i].url=Replace(entryarr[i].url);
 			xmlFree(contt);
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "title" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].title=(char*)contt;
+			entryarr[i].title=Replace(entryarr[i].title);
 			xmlFree(contt);
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "name" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].author=(char*)contt;
+			entryarr[i].author=Replace(entryarr[i].author);
 			xmlFree(contt);
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "updated" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].update=(char*)contt;
+			entryarr[i].update=Replace(entryarr[i].update);
 			xmlFree(contt);
 		}
 
@@ -118,11 +131,7 @@ else
 		else
 			entryarr[i].type="entry";
 
-		//	printf("%s\n",current->name);
 			Parse(current,index,count,name);
-
-
-
 		}
 	}
 }
@@ -133,27 +142,35 @@ return true;
 
 bool Connection::Feedparser()
 {
+
 if(Feed.find("HTTP/1.1 200 OK")!=0)
 	return false;
-
 //remove the header
 Feed=Feed.substr(Feed.find("\r\n\r\n"));
 Feed.erase(Feed.begin(),Feed.begin()+4);
+Feed=Feed.substr(Feed.find("<"));
 
-
+printf("%s\n",Feed.c_str() ); //erase everything to the > 
+size_t indexs = 0;
+while (true) {
+     /* Locate the substring to replace. */
+     indexs = Feed.find("&", indexs);
+     if (indexs == std::string::npos) break;
+     /* Make the replacement. */
+     Feed.replace(indexs, 4, "axxd");
+     /* Advance index forward so the next iteration doesn't pick it up as well. */
+     indexs += 1;
+}
   doc = xmlParseMemory(Feed.c_str(),Feed.length());
 
   if (doc == NULL) 
         fprintf(stderr,"error: could not parse document\n");
-  
 
   xmlNodePtr root;
  
   root = xmlDocGetRootElement(doc);
   if(root==NULL)
   	return false;
-
-printf("\n\n\n\n\n");
 
 int pocet=0;
 string name="";
@@ -162,10 +179,6 @@ Parse(root,&pocet,true,name);
 entryarr=new entry[pocet+5];
 int index=0;
 Parse(root,&index,false,name);
-
-
-
-
 
 
 int x=0;
@@ -197,7 +210,7 @@ bool Connection::TCPdownload()
     int p;
 	string link;
 	printf("%s %s\n",MyCommand.file.c_str(),MyCommand.server.c_str() );
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: OpenSSL\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
    
     char r[1024];
     /* Set up the library */
@@ -256,8 +269,9 @@ bool Connection::SSLdownload()
     int p;
 
 	string link;
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: OpenSSL\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
     char r[1024];
+
     /* Set up the library */
     SSL_library_init();
     ERR_load_BIO_strings();
@@ -273,7 +287,24 @@ bool Connection::SSLdownload()
 
   ctx = SSL_CTX_new(SSLv23_client_method());
 
-  if(! SSL_CTX_load_verify_locations(ctx,NULL,"/etc/ssl/certs"))
+  char *file=NULL;
+  string folder=DEFAULTDIR;
+
+
+
+
+ if(MyCommand.cargv!="")
+ {
+  	file=(char *)malloc(sizeof(char)*MyCommand.cargv.length());
+  	strcpy(file,MyCommand.cargv.c_str());
+ }
+ if(MyCommand.Cargv!="")
+ 	folder=MyCommand.Cargv;
+
+
+
+
+  if(! SSL_CTX_load_verify_locations(ctx,file,folder.c_str()))
     {
         fprintf(stderr, "Error loading trust store\n");
         ERR_print_errors_fp(stderr);
@@ -429,6 +460,7 @@ else
 int pos; 
 if((pos=url.find("/"))!=-1)
 {
+
 	MyCommand.file=url.substr(pos+1);
 	url.erase(url.begin()+pos,url.end());
 }else return false;
@@ -491,7 +523,7 @@ while ((c = getopt (argc, argv, "f:c:C:ITau")) != -1)
 	      		fprintf (stderr, "Wrong Input");
 	      		return false;
     }
-if((optind+1!=argc and MyCommand.fargv.empty()) || (!MyCommand.cargv.empty() and !MyCommand.Cargv.empty()))
+if((optind+1!=argc and MyCommand.fargv.empty()))
 {
 	fprintf(stderr,"Wrong input \n");
 	return false;
