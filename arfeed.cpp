@@ -19,6 +19,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/bio.h>
+#include <iconv.h>
 
 using namespace std;
 
@@ -52,15 +53,15 @@ Connection::Connection(Command MyCommand)
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
-string Replace( string Str)
+string Replace( string Str,string s1,string s2)
 {
-int indexs=0;
+size_t indexs=0;
 while (true) {
      /* Locate the substring to replace. */
-     indexs = Str.find("axxd", indexs);
+     indexs = Str.find(s1, indexs);
      if (indexs == std::string::npos) break;
      /* Make the replacement. */
-     Str.replace(indexs, 4, "&");
+     Str.replace(indexs, s1.length(), s2);
      /* Advance index forward so the next iteration doesn't pick it up as well. */
      indexs += 1;
 }
@@ -104,25 +105,25 @@ else
 		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "id" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].url=(char*)contt;
-			entryarr[i].url=Replace(entryarr[i].url);
+			entryarr[i].url=Replace(entryarr[i].url,"&amp;","&");
 			xmlFree(contt);
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "title" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].title=(char*)contt;
-			entryarr[i].title=Replace(entryarr[i].title);
+			entryarr[i].title=Replace(entryarr[i].title,"&amp;","&");
 			xmlFree(contt);
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "name" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].author=(char*)contt;
-			entryarr[i].author=Replace(entryarr[i].author);
+			entryarr[i].author=Replace(entryarr[i].author,"&amp;","&");
 			xmlFree(contt);
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "updated" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].update=(char*)contt;
-			entryarr[i].update=Replace(entryarr[i].update);
+			entryarr[i].update=Replace(entryarr[i].update,"&amp;","&");
 			xmlFree(contt);
 		}
 
@@ -150,22 +151,17 @@ Feed=Feed.substr(Feed.find("\r\n\r\n"));
 Feed.erase(Feed.begin(),Feed.begin()+4);
 Feed=Feed.substr(Feed.find("<"));
 
-printf("%s\n",Feed.c_str() ); //erase everything to the > 
-size_t indexs = 0;
-while (true) {
-     /* Locate the substring to replace. */
-     indexs = Feed.find("&", indexs);
-     if (indexs == std::string::npos) break;
-     /* Make the replacement. */
-     Feed.replace(indexs, 4, "axxd");
-     /* Advance index forward so the next iteration doesn't pick it up as well. */
-     indexs += 1;
+
+Feed=Replace(Feed,"&","&amp;");
+
+doc = xmlReadMemory(Feed.c_str(),Feed.length(),NULL,"UTF-8",1);
+
+
+if (doc == NULL) 
+{ fprintf(stderr,"error: could not parse document\n");
+
+   		return false;
 }
-  doc = xmlParseMemory(Feed.c_str(),Feed.length());
-
-  if (doc == NULL) 
-        fprintf(stderr,"error: could not parse document\n");
-
   xmlNodePtr root;
  
   root = xmlDocGetRootElement(doc);
@@ -181,15 +177,16 @@ int index=0;
 Parse(root,&index,false,name);
 
 
+
 int x=0;
 while(entryarr[x].type!="")
-{
-printf("%s type\n",entryarr[x].type.c_str() );	
-printf("%s title\n",entryarr[x].title.c_str() );
-//printf("%s author\n",entryarr[x].author.c_str() );
-if(entryarr[x].update!="")
-printf("%s update \n",entryarr[x].update.c_str() );
-printf("%s url \n\n",entryarr[x].url.c_str() );
+{	
+	if(entryarr[x].type=="feed")
+	{
+		printf("*** %s ***",entryarr[x].title.c_str() );
+	}else
+		printf("\n%s",entryarr[x].title.c_str() );
+
 	x++;
 }
 
@@ -198,19 +195,13 @@ printf("%s url \n\n",entryarr[x].url.c_str() );
 }
 
 
-
-
-
-
-
-
 bool Connection::TCPdownload()
 {
 	BIO * bio;
     int p;
 	string link;
 	printf("%s %s\n",MyCommand.file.c_str(),MyCommand.server.c_str() );
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html;charset=UTF-8,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
    
     char r[1024];
     /* Set up the library */
@@ -269,7 +260,7 @@ bool Connection::SSLdownload()
     int p;
 
 	string link;
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html\r\nAccept-Language: en-US,en;q=0.5\r\nAccept-Charset: UTF-8\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
     char r[1024];
 
     /* Set up the library */
