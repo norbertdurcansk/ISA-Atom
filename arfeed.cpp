@@ -143,13 +143,21 @@ return true;
 
 bool Connection::Feedparser()
 {
-
-if(Feed.find("HTTP/1.1 200 OK")!=0)
+size_t px;
+//opravit 
+if(px=(Feed.find("HTTP/1.1 200 OK"))==string::npos)
+	{	
+			return false;
+	}
+if(px!=0)
 	return false;
+
 //remove the header
 Feed=Feed.substr(Feed.find("\r\n\r\n"));
 Feed.erase(Feed.begin(),Feed.begin()+4);
 Feed=Feed.substr(Feed.find("<"));
+if(Feed.rfind(">")!=Feed.length()-1)
+	Feed.erase(Feed.rfind(">")+1,Feed.length()-1);
 
 
 Feed=Replace(Feed,"&","&amp;");
@@ -181,19 +189,28 @@ Parse(root,&index,false,name);
 int x=0;
 while(entryarr[x].type!="")
 {	
+	if(x>0 && (MyCommand.aflag==true || MyCommand.Tflag==true || MyCommand.Iflag==true || MyCommand.uflag==true))
+		printf("\n");
+
 	if(entryarr[x].type=="feed")
 	{
 		printf("*** %s ***",entryarr[x].title.c_str() );
 	}else
 		printf("\n%s",entryarr[x].title.c_str() );
 
+	if(MyCommand.aflag==true && entryarr[x].author!="" )
+		printf("\nAutor: %s",entryarr[x].author.c_str() );
+
+	if(MyCommand.Tflag==true && entryarr[x].update!="" )
+		printf("\nAktualizace: %s",entryarr[x].update.c_str() );
+
+	if(MyCommand.uflag==true && entryarr[x].url!="" )
+		printf("\nURL: %s",entryarr[x].url.c_str() );
+
 	x++;
 }
-
-
 	return true;
 }
-
 
 bool Connection::TCPdownload()
 {
@@ -242,6 +259,7 @@ bool Connection::TCPdownload()
     }
  
     BIO_free_all(bio);
+
    if(Feedparser())
 		return true;
 
@@ -252,7 +270,7 @@ return false;
 bool Connection::SSLdownload()
 {
 
-    
+   
     BIO * bio;
     SSL * ssl;
     SSL_CTX * ctx;
@@ -330,7 +348,7 @@ bool Connection::SSLdownload()
 
     if(SSL_get_verify_result(ssl) != X509_V_OK)
     {
-        fprintf(stderr, "Certificate verification error: %i\n", SSL_get_verify_result(ssl));
+        fprintf(stderr, "Certificate verification error");
         BIO_free_all(bio);
         SSL_CTX_free(ctx);
         return 0;
@@ -372,25 +390,44 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 	MyCommand.Url=argv[optind];
 	if(!URLparser())
 		return false;
+
+		int ret;
+	if(MyCommand.protocol==HTTP)
+		ret=TCPdownload();
+	else
+		ret=SSLdownload();
+		
+	if(!ret)
+			printf("error to connect \n");
+	
+
+
+
 	}
 	else
 	{
 	//get the first address from feedfile
-	MyCommand.Url=FeedFileParser();
-	if(!URLparser())
-		return false;
-	}
-int ret;
-if(MyCommand.protocol==HTTP)
-	ret=TCPdownload();
-else
-	ret=SSLdownload();
-	
+	int i=0;
+	while((MyCommand.Url=FeedFileParser())!="EOL")	
+	{	
+		if(i>0)
+			printf("\n\n");
 
-if(ret)
-	return true;
-else
-	return false;
+		if(!URLparser())
+			return false;
+					
+		int ret;
+		if(MyCommand.protocol==HTTP)
+			ret=TCPdownload();
+		else
+			ret=SSLdownload();
+
+		if(!ret)
+			printf("error to connect \n");
+
+	i=1;
+	}
+	}	
 }
 
 string Connection::FeedFileParser()
@@ -417,7 +454,7 @@ if (counter==line_counter)
 		continue;
 	}
 	else{
-		line_counter++;
+		
 		return line;
 	}
 }
