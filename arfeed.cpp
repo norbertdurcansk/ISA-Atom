@@ -190,19 +190,19 @@ while(entryarr[x].type!="")
 	if(x>0 && (MyCommand.aflag==true || MyCommand.Tflag==true || MyCommand.Iflag==true || MyCommand.uflag==true))
 		printf("\n");
 
-	if(MyCommand.Iflag==true  && br==false)
-	{
-		br=true;
-		News(entryarr);
-
-	}
-
-
 	if(entryarr[x].type=="feed")
 	{
 		printf("*** %s ***",entryarr[x].title.c_str() );
-	}else
-		printf("\n%s",entryarr[x].title.c_str() );
+		x++;
+		continue;
+	}
+	if(MyCommand.Iflag==true)
+	{
+		br=true;
+		x=News(entryarr);
+	}
+
+	printf("\n%s",entryarr[x].title.c_str() );
 
 	if(MyCommand.aflag==true && entryarr[x].author!="" )
 		printf("\nAutor: %s",entryarr[x].author.c_str() );
@@ -213,7 +213,8 @@ while(entryarr[x].type!="")
 	if(MyCommand.uflag==true && entryarr[x].url!="" )
 		printf("\nURL: %s",entryarr[x].url.c_str() );
 
-
+	if(br)
+		break;
 	x++;
 }
 
@@ -226,44 +227,115 @@ Feed="";
 }
 int News(entry *arr)
 {
-	int x =0;
+	int x =1;
 	int year=0;
 	int month=0;
 	int day=0;
 	int hour=0;
 	int min=0;
 	int sec=0;
-	int max=0;
-	
+	int max=1;
+	int maxyear=0;
+	int maxmonth=0;
+	int maxday=0;
+	int maxhour=0;
+	int maxmin=0;
+	int maxsec=0;
 
-	while(arr[x].type!="")
-	{
-		year=atoi(arr[x].update.substr(0,arr[x].update.find("-")).c_str());
-		arr[x].update=arr[x].update.substr(arr[x].update.find("-")+1);
-		month=atoi(arr[x].update.substr(0,arr[x].update.find("-")).c_str());
-		arr[x].update=arr[x].update.substr(arr[x].update.find("-")+1);
-		day=atoi(arr[x].update.substr(0,arr[x].update.find("-")).c_str());
-		arr[x].update=arr[x].update.substr(arr[x].update.find("T")+1);
-		hour=atoi(arr[x].update.substr(0,arr[x].update.find(":")).c_str());
-	    arr[x].update=arr[x].update.substr(arr[x].update.find(":")+1);
-		min=atoi(arr[x].update.substr(0,arr[x].update.find(":")).c_str());
-	    arr[x].update=arr[x].update.substr(arr[x].update.find(":")+1);
-		sec=atoi(arr[x].update.substr(0,2).c_str());
+		string pom1=arr[x].update;
+		maxyear=atoi(pom1.substr(0,pom1.find("-")).c_str());
+		pom1=pom1.substr(pom1.find("-")+1);
+		maxmonth=atoi(pom1.substr(0,pom1.find("-")).c_str());
+		pom1=pom1.substr(pom1.find("-")+1);
+		maxday=atoi(pom1.substr(0,pom1.find("-")).c_str());
+		pom1=pom1.substr(pom1.find("T")+1);
+		maxhour=atoi(pom1.substr(0,pom1.find(":")).c_str());
+	    pom1=pom1.substr(pom1.find(":")+1);
+		maxmin=atoi(pom1.substr(0,pom1.find(":")).c_str());
+	    pom1=pom1.substr(pom1.find(":")+1);
+		maxsec=atoi(pom1.substr(0,2).c_str());
 		//porovnanie
 
-
-
-
-
-
-
+	while(arr[x+1].type!="")
+	{
 		x++;
+		bool changed=false;
+		pom1=arr[x].update;
+		year=atoi(pom1.substr(0,pom1.find("-")).c_str());
+		pom1=pom1.substr(pom1.find("-")+1);
+		month=atoi(pom1.substr(0,pom1.find("-")).c_str());
+		pom1=pom1.substr(pom1.find("-")+1);
+		day=atoi(pom1.substr(0,pom1.find("-")).c_str());
+		pom1=pom1.substr(pom1.find("T")+1);
+		hour=atoi(pom1.substr(0,pom1.find(":")).c_str());
+	    pom1=pom1.substr(pom1.find(":")+1);
+		min=atoi(pom1.substr(0,pom1.find(":")).c_str());
+	    pom1=pom1.substr(pom1.find(":")+1);
+		sec=atoi(pom1.substr(0,2).c_str());
 
+		//porovnanie
+		if(year>maxyear)
+		{
+			max=x;
+			changed=true;
+
+		}else if(maxyear > year)
+			continue;
+		else if(month>maxmonth)
+		{
+			max=x;
+			changed=true;
+
+		}else if (maxmonth>month)
+			continue;
+		else if(day>maxday)
+		{
+			max=x;
+			changed=true;
+
+		}else if(maxday>day)
+			continue;
+		else if(maxhour>hour)
+			continue;
+		else if(hour>maxhour)
+		{
+			max=x;
+			changed=true;
+		}
+		else if(maxmin<min)
+		{
+			max=x;
+			changed=true;
+
+		}else if(maxmin>min)
+			continue;
+		else if(maxsec<sec)
+		{
+			max=x;
+			changed=true;
+		}
+		else if(maxsec>sec)
+			continue;
+
+
+		if(changed)
+		{
+			maxyear=year;
+			
+			maxmonth=month;
+			
+			maxday=day;
+		
+			maxhour=hour;
+		  
+			maxmin=min;
+
+			maxsec=sec;
+		}
 
 	}
 
-
-	return 0;
+	return max;
 }
 
 
@@ -275,9 +347,9 @@ bool Connection::TCPdownload()
     int p;
 	string link;
 	printf("%s %s\n",MyCommand.file.c_str(),MyCommand.server.c_str() );
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html;charset=UTF-8,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
    
-    char r[1024];
+    char r[5001];
     /* Set up the library */
     ERR_load_BIO_strings();
     SSL_load_error_strings();
@@ -306,9 +378,10 @@ bool Connection::TCPdownload()
 
     BIO_write(bio, link.c_str(), strlen(link.c_str()));
 
+    Feed="";
     for(;;)
     {
-        p = BIO_read(bio, r, 1023);
+        p = BIO_read(bio, r, 5000);
         if(p <= 0) break;
         r[p] = 0;
         Feed+=string(r);
@@ -335,8 +408,8 @@ bool Connection::SSLdownload()
     int p;
 
 	string link;
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: text/html\r\nAccept-Language: en-US,en;q=0.5\r\nAccept-Charset: UTF-8\r\nConnection: Close\r\nCache-Control: max-age=0\r\n\r\n";
-    char r[1024];
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
+    char r[5001];
 
     /* Set up the library */
     SSL_library_init();
@@ -415,10 +488,10 @@ bool Connection::SSLdownload()
     BIO_write(bio, link.c_str(), strlen(link.c_str()));
 
     /* Read in the response */
-
+    Feed="";
     for(;;)
     {
-        p = BIO_read(bio, r, 1023);
+        p = BIO_read(bio, r, 5000);
         if(p <= 0) break;
         r[p] = 0;
         Feed+=string(r);
