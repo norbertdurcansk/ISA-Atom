@@ -157,8 +157,11 @@ if(px!=0)
 //remove the header
 Feed=Feed.substr(Feed.find("\r\n\r\n"));
 Feed=Feed.substr(Feed.find("<"));
-
+if(Feed.rfind(">")!=Feed.length()-1)
+	Feed.erase(Feed.rfind(">")+1);
 Replace(Feed,"&","&amp;");
+
+
 
 doc = xmlReadMemory(Feed.c_str(),Feed.length(),NULL,"UTF-8",1);
 
@@ -349,7 +352,7 @@ bool Connection::TCPdownload()
 	printf("%s %s\n",MyCommand.file.c_str(),MyCommand.server.c_str() );
 	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
    
-    char r[5001];
+    char r[1024];
     /* Set up the library */
     ERR_load_BIO_strings();
     SSL_load_error_strings();
@@ -381,10 +384,11 @@ bool Connection::TCPdownload()
     Feed="";
     for(;;)
     {
-        p = BIO_read(bio, r, 5000);
+        p = BIO_read(bio, r, 1023);
         if(p <= 0) break;
-        r[p] = 0;
+        r[p] = '\0';
         Feed+=string(r);
+        r[0]='\0';
        
     }
  
@@ -409,7 +413,8 @@ bool Connection::SSLdownload()
 
 	string link;
 	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
-    char r[5001];
+    char r[1024];
+
 
     /* Set up the library */
     SSL_library_init();
@@ -491,11 +496,11 @@ bool Connection::SSLdownload()
     Feed="";
     for(;;)
     {
-        p = BIO_read(bio, r, 5000);
+        p = BIO_read(bio, r, 1023);
         if(p <= 0) break;
-        r[p] = 0;
+        r[p]='\0';
         Feed+=string(r);
-
+       r[0]='\0';
     }
     
     /* Close the connection and free the context */
