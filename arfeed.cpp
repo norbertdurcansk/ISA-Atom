@@ -20,8 +20,10 @@
 #include <openssl/err.h>
 #include <openssl/bio.h>
 #include <iconv.h>
-
 using namespace std;
+
+
+int News(entry *);
 
 class Connection
 {
@@ -154,16 +156,11 @@ if(px!=0)
 
 //remove the header
 Feed=Feed.substr(Feed.find("\r\n\r\n"));
-Feed.erase(Feed.begin(),Feed.begin()+4);
 Feed=Feed.substr(Feed.find("<"));
-if(Feed.rfind(">")!=Feed.length()-1)
-	Feed.erase(Feed.rfind(">")+1,Feed.length()-1);
 
-
-Feed=Replace(Feed,"&","&amp;");
+Replace(Feed,"&","&amp;");
 
 doc = xmlReadMemory(Feed.c_str(),Feed.length(),NULL,"UTF-8",1);
-
 
 if (doc == NULL) 
 { fprintf(stderr,"error: could not parse document\n");
@@ -187,10 +184,19 @@ Parse(root,&index,false,name);
 
 
 int x=0;
+int br=false;
 while(entryarr[x].type!="")
 {	
 	if(x>0 && (MyCommand.aflag==true || MyCommand.Tflag==true || MyCommand.Iflag==true || MyCommand.uflag==true))
 		printf("\n");
+
+	if(MyCommand.Iflag==true  && br==false)
+	{
+		br=true;
+		News(entryarr);
+
+	}
+
 
 	if(entryarr[x].type=="feed")
 	{
@@ -207,10 +213,61 @@ while(entryarr[x].type!="")
 	if(MyCommand.uflag==true && entryarr[x].url!="" )
 		printf("\nURL: %s",entryarr[x].url.c_str() );
 
+
 	x++;
 }
+
+
+Feed="";
+    xmlFreeDoc(doc);       // free document
+    xmlCleanupParser();    // Free globals
+
 	return true;
 }
+int News(entry *arr)
+{
+	int x =0;
+	int year=0;
+	int month=0;
+	int day=0;
+	int hour=0;
+	int min=0;
+	int sec=0;
+	int max=0;
+	
+
+	while(arr[x].type!="")
+	{
+		year=atoi(arr[x].update.substr(0,arr[x].update.find("-")).c_str());
+		arr[x].update=arr[x].update.substr(arr[x].update.find("-")+1);
+		month=atoi(arr[x].update.substr(0,arr[x].update.find("-")).c_str());
+		arr[x].update=arr[x].update.substr(arr[x].update.find("-")+1);
+		day=atoi(arr[x].update.substr(0,arr[x].update.find("-")).c_str());
+		arr[x].update=arr[x].update.substr(arr[x].update.find("T")+1);
+		hour=atoi(arr[x].update.substr(0,arr[x].update.find(":")).c_str());
+	    arr[x].update=arr[x].update.substr(arr[x].update.find(":")+1);
+		min=atoi(arr[x].update.substr(0,arr[x].update.find(":")).c_str());
+	    arr[x].update=arr[x].update.substr(arr[x].update.find(":")+1);
+		sec=atoi(arr[x].update.substr(0,2).c_str());
+		//porovnanie
+
+
+
+
+
+
+
+		x++;
+
+
+	}
+
+
+	return 0;
+}
+
+
+
 
 bool Connection::TCPdownload()
 {
@@ -427,7 +484,8 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 
 	i=1;
 	}
-	}	
+	}
+return true;		
 }
 
 string Connection::FeedFileParser()
