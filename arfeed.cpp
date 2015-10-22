@@ -157,13 +157,14 @@ if(px!=0)
 //remove the header
 Feed=Feed.substr(Feed.find("\r\n\r\n"));
 Feed=Feed.substr(Feed.find("<"));
-if(Feed.rfind(">")!=Feed.length()-1)
-	Feed.erase(Feed.rfind(">")+1);
+/*if(Feed.rfind(">")!=Feed.length()-1)
+	Feed.erase(Feed.rfind(">")+1);*/
 Replace(Feed,"&","&amp;");
 
 
+char *fed=(char *)Feed.c_str();
 
-doc = xmlReadMemory(Feed.c_str(),Feed.length(),NULL,"UTF-8",1);
+doc = xmlReadMemory(fed,strlen(fed),NULL,"UTF-8",1);
 
 if (doc == NULL) 
 { fprintf(stderr,"error: could not parse document\n");
@@ -349,7 +350,6 @@ bool Connection::TCPdownload()
 	BIO * bio;
     int p;
 	string link;
-	printf("%s %s\n",MyCommand.file.c_str(),MyCommand.server.c_str() );
 	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
    
     char r[1024];
@@ -360,7 +360,7 @@ bool Connection::TCPdownload()
 
 
         /* Create and setup the connection */
-    string hey=MyCommand.server+":80";
+    string hey=MyCommand.server+":"+MyCommand.port;
     char* con = new char[hey.length() + 1];
     copy(hey.begin(), hey.end(), con);
 
@@ -386,9 +386,9 @@ bool Connection::TCPdownload()
     {
         p = BIO_read(bio, r, 1023);
         if(p <= 0) break;
-        r[p] = '\0';
+        r[p] = 0;
         Feed+=string(r);
-        r[0]='\0';
+        r[0]=0;
        
     }
  
@@ -422,8 +422,9 @@ bool Connection::SSLdownload()
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
 
+
    /* Create and setup the connection */
-    string hey=MyCommand.server+":443";
+    string hey=MyCommand.server+":"+MyCommand.port;
     char* con = new char[hey.length() + 1];
     copy(hey.begin(), hey.end(), con);
 
@@ -498,9 +499,9 @@ bool Connection::SSLdownload()
     {
         p = BIO_read(bio, r, 1023);
         if(p <= 0) break;
-        r[p]='\0';
+        r[p]=0;
         Feed+=string(r);
-       r[0]='\0';
+       	r[0]=0;
     }
     
     /* Close the connection and free the context */
@@ -513,7 +514,6 @@ bool Connection::SSLdownload()
 	
 return false;
 }
-
 
 
 
@@ -558,7 +558,7 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 			ret=SSLdownload();
 
 		if(!ret)
-			printf("error to connect \n");
+			printf("\nerror to connect \n");
 
 	i=1;
 	}
@@ -608,6 +608,7 @@ string url=MyCommand.Url;
 if(url.find("http://")==0)
 {
 	MyCommand.protocol=HTTP;
+	MyCommand.port="80";
 	url.erase(url.begin(),url.begin()+7);
 }
 else
@@ -616,9 +617,16 @@ else
 	{
 		MyCommand.protocol=HTTPS;
 		url.erase(url.begin(),url.begin()+8);
-	}else MyCommand.protocol="";
-}
+		MyCommand.port="443";
 
+	}else if(url.find("://")!=std::string::npos)
+		return false;
+
+	else{
+	 MyCommand.protocol=HTTP;
+	 MyCommand.port="80";
+	}
+}
 
 //get file from url
 int pos; 
@@ -631,16 +639,12 @@ if((pos=url.find("/"))!=-1)
 
 if((pos=url.find(":"))!=-1)
 {
-	MyCommand.port=atoi((url.substr(pos+1)).c_str());
+	MyCommand.port=url.substr(pos+1);
 	url.erase(url.begin()+pos,url.end());
 
-	if((MyCommand.port==80 && MyCommand.protocol==HTTPS) || (MyCommand.port==443 && MyCommand.protocol==HTTP) || (MyCommand.port!=443 && MyCommand.port!=80 ))
-		return false;
-	if(MyCommand.port==80 && MyCommand.protocol=="")
-		MyCommand.protocol=HTTP;
-	if(MyCommand.port==443 && MyCommand.protocol=="")
-		MyCommand.protocol=HTTPS;
 }
+
+
 MyCommand.server=url;
 return true;
 }

@@ -36,7 +36,7 @@ bool Tflag=false;
 bool aflag=false;
 bool uflag=false;
 std::string server="";
-int port=0;
+std::string port="";
 std::string file="";
 std::string protocol;
 std::string fargv="";
