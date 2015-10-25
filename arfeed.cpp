@@ -1,84 +1,37 @@
-#include <iostream>
 #include <cstring>
 #include <string>
 #include <getopt.h>
 #include <unistd.h>
 #include "arfeed.hpp"
 #include <fstream>
-#include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
-#include <openssl/rand.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/bio.h>
-#include <iconv.h>
-using namespace std;
+#include "RSSparser.hpp"
+#include "arfeed.hpp"
 
-
-int News(entry *);
-
-class Connection
-{
-	public:
-		BIO * bio;
-    	SSL * ssl;
-    	SSL_CTX * ctx;
-		int socket_id;
-		int line_counter;
-		Command MyCommand;
-		string Feed;
-		xmlDocPtr doc;
-		entry *entryarr;
-
-		Connection(Command);
-		bool ConnectionCreate(char **,int);
-		bool URLparser();
-		bool ArgumentParser(int  , char **);
-		string  FeedFileParser();
-		bool SSLdownload();
-		bool TCPdownload();
-		bool Feedparser();
-		bool Parse(xmlNodePtr,int*,bool,string);
-};
 Connection::Connection(Command MyCommand)
 {
-
-
 this->MyCommand=MyCommand;
 this->line_counter=0;
 }
-string Replace( string Str,string s1,string s2)
-{
-size_t indexs=0;
-while (true) {
-     /* Locate the substring to replace. */
-     indexs = Str.find(s1, indexs);
-     if (indexs == std::string::npos) break;
-     /* Make the replacement. */
-     Str.replace(indexs, s1.length(), s2);
-     /* Advance index forward so the next iteration doesn't pick it up as well. */
-     indexs += 1;
-}
-return Str;
-}
 
-bool Connection::Parse(xmlNodePtr root,int *index, bool count,string name)
+bool Connection::Parse(xmlNodePtr root,int *index, bool count)
 {
 xmlNodePtr current;
 xmlChar* contt;
 int i=*index;
-
-
 if(count)
 {
+	
+	if(!(xmlStrcmp ( root->name, ( const xmlChar * ) "rss" ) ) )
+		{
+			Feedtype="rss";
+			return true;
+		}
+	if(!(xmlStrcmp ( root->name, ( const xmlChar * ) "rdf" ) ))
+	{
+		Feedtype="rss";
+		return true;
+	}
 	for(current=root->children;current!=NULL;current=current->next)
 	{	
 		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "entry" ) ) )  
@@ -86,7 +39,7 @@ if(count)
 
 		if(current->type==XML_ELEMENT_NODE)
 		{
-			Parse(current,index,count,name);
+			Parse(current,index,count);
 		}
 	}
 }
@@ -107,25 +60,30 @@ else
 		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "id" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].url=(char*)contt;
-			entryarr[i].url=Replace(entryarr[i].url,"&amp;","&");
+		
 			xmlFree(contt);
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "title" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].title=(char*)contt;
-			entryarr[i].title=Replace(entryarr[i].title,"&amp;","&");
+			
 			xmlFree(contt);
 		}
-				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "name" ) ) ) 
-		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
-			entryarr[i].author=(char*)contt;
-			entryarr[i].author=Replace(entryarr[i].author,"&amp;","&");
-			xmlFree(contt);
+		
+		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "name" ) ) ) 
+		{	
+			if( !(xmlStrcmp ( root->name, ( const xmlChar * ) "author" ) ) )
+			{
+				contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+				entryarr[i].author=(char*)contt;
+			
+				xmlFree(contt);
+			}
 		}
 				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "updated" ) ) ) 
 		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].update=(char*)contt;
-			entryarr[i].update=Replace(entryarr[i].update,"&amp;","&");
+
 			xmlFree(contt);
 		}
 
@@ -134,37 +92,81 @@ else
 		else
 			entryarr[i].type="entry";
 
-			Parse(current,index,count,name);
+			Parse(current,index,count);
 		}
 	}
 }
-
 return true;
 }
 
 
+
 bool Connection::Feedparser()
 {
+
 size_t px;
-//opravit 
-if(px=(Feed.find("HTTP/1.1 200 OK"))==string::npos)
+bool chunked =false;
+string text="";
+
+string header=Feed.substr(0,Feed.find("\r\n\r\n"));
+
+px=(header.find("HTTP/1.1 200 OK"));
+
+
+if(header.find("HTTP/1.1 200 OK")==string::npos)
 	{	
+			if(header.find("HTTP/1.1 301 Moved Permanently")==string::npos)
+				return false;
+
+		string Location=header.substr(header.find("Location: ")+strlen("Location: "));
+		Location=Location.substr(0,Location.find('\x0d')).c_str();
+		MyCommand.Url=Location;
+
+		if(!URLparser())
 			return false;
+					
+		int ret;
+		if(MyCommand.protocol==HTTP)
+			ret=TCPdownload();
+		else
+			ret=SSLdownload();
+
+		if(!ret)
+			printf("\nerror to connect \n");
+
+			return true;
 	}
 if(px!=0)
 	return false;
 
-//remove the header
-Feed=Feed.substr(Feed.find("\r\n\r\n"));
-Feed=Feed.substr(Feed.find("<"));
-/*if(Feed.rfind(">")!=Feed.length()-1)
-	Feed.erase(Feed.rfind(">")+1);*/
-Replace(Feed,"&","&amp;");
+if(header.find("Transfer-Encoding: chunked")!=string::npos)
+	chunked=true;
+
+if(chunked==true)
+{
+Feed=Feed.substr(Feed.find("\r\n\r\n")+4);
+string number;
+
+while(true){
+
+number=Feed.substr(0,Feed.find("\x0d\x0a"));
+unsigned int x = strtoul(number.c_str(), NULL, 16);
+if(x==0)
+	break;
+Feed=Feed.substr(Feed.find("\x0d\x0a")+2);
+text+=Feed.substr(0,x);
+Feed=Feed.substr(x+2);
+}
+Feed=text;
+}
+else
+{
+
+Feed=Feed.substr(Feed.find("\r\n\r\n")+4);
+}
 
 
-char *fed=(char *)Feed.c_str();
-
-doc = xmlReadMemory(fed,strlen(fed),NULL,"UTF-8",1);
+doc = xmlReadMemory(Feed.c_str(),Feed.length(),NULL,"UTF-8",1);
 
 if (doc == NULL) 
 { fprintf(stderr,"error: could not parse document\n");
@@ -178,14 +180,20 @@ if (doc == NULL)
   	return false;
 
 int pocet=0;
-string name="";
 //give me number of entries to create 
-Parse(root,&pocet,true,name);
+Parse(root,&pocet,true);
+
+if(Feedtype=="rss")
+{
+	RSS rss(Feed);
+	return (rss.RSSparse(root,this));
+}
+else
+{
 entryarr=new entry[pocet+5];
-int index=0;
-Parse(root,&index,false,name);
-
-
+	int index=0;
+	Parse(root,&index,false);
+}
 
 int x=0;
 int br=false;
@@ -221,126 +229,13 @@ while(entryarr[x].type!="")
 		break;
 	x++;
 }
-
-
 Feed="";
     xmlFreeDoc(doc);       // free document
     xmlCleanupParser();    // Free globals
 
 	return true;
 }
-int News(entry *arr)
-{
-	int x =1;
-	int year=0;
-	int month=0;
-	int day=0;
-	int hour=0;
-	int min=0;
-	int sec=0;
-	int max=1;
-	int maxyear=0;
-	int maxmonth=0;
-	int maxday=0;
-	int maxhour=0;
-	int maxmin=0;
-	int maxsec=0;
 
-		string pom1=arr[x].update;
-		maxyear=atoi(pom1.substr(0,pom1.find("-")).c_str());
-		pom1=pom1.substr(pom1.find("-")+1);
-		maxmonth=atoi(pom1.substr(0,pom1.find("-")).c_str());
-		pom1=pom1.substr(pom1.find("-")+1);
-		maxday=atoi(pom1.substr(0,pom1.find("-")).c_str());
-		pom1=pom1.substr(pom1.find("T")+1);
-		maxhour=atoi(pom1.substr(0,pom1.find(":")).c_str());
-	    pom1=pom1.substr(pom1.find(":")+1);
-		maxmin=atoi(pom1.substr(0,pom1.find(":")).c_str());
-	    pom1=pom1.substr(pom1.find(":")+1);
-		maxsec=atoi(pom1.substr(0,2).c_str());
-		//porovnanie
-
-	while(arr[x+1].type!="")
-	{
-		x++;
-		bool changed=false;
-		pom1=arr[x].update;
-		year=atoi(pom1.substr(0,pom1.find("-")).c_str());
-		pom1=pom1.substr(pom1.find("-")+1);
-		month=atoi(pom1.substr(0,pom1.find("-")).c_str());
-		pom1=pom1.substr(pom1.find("-")+1);
-		day=atoi(pom1.substr(0,pom1.find("-")).c_str());
-		pom1=pom1.substr(pom1.find("T")+1);
-		hour=atoi(pom1.substr(0,pom1.find(":")).c_str());
-	    pom1=pom1.substr(pom1.find(":")+1);
-		min=atoi(pom1.substr(0,pom1.find(":")).c_str());
-	    pom1=pom1.substr(pom1.find(":")+1);
-		sec=atoi(pom1.substr(0,2).c_str());
-
-		//porovnanie
-		if(year>maxyear)
-		{
-			max=x;
-			changed=true;
-
-		}else if(maxyear > year)
-			continue;
-		else if(month>maxmonth)
-		{
-			max=x;
-			changed=true;
-
-		}else if (maxmonth>month)
-			continue;
-		else if(day>maxday)
-		{
-			max=x;
-			changed=true;
-
-		}else if(maxday>day)
-			continue;
-		else if(maxhour>hour)
-			continue;
-		else if(hour>maxhour)
-		{
-			max=x;
-			changed=true;
-		}
-		else if(maxmin<min)
-		{
-			max=x;
-			changed=true;
-
-		}else if(maxmin>min)
-			continue;
-		else if(maxsec<sec)
-		{
-			max=x;
-			changed=true;
-		}
-		else if(maxsec>sec)
-			continue;
-
-
-		if(changed)
-		{
-			maxyear=year;
-			
-			maxmonth=month;
-			
-			maxday=day;
-		
-			maxhour=hour;
-		  
-			maxmin=min;
-
-			maxsec=sec;
-		}
-
-	}
-
-	return max;
-}
 
 
 
@@ -352,7 +247,7 @@ bool Connection::TCPdownload()
 	string link;
 	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
    
-    char r[1024];
+    char r[1025];
     /* Set up the library */
     ERR_load_BIO_strings();
     SSL_load_error_strings();
@@ -384,13 +279,13 @@ bool Connection::TCPdownload()
     Feed="";
     for(;;)
     {
-        p = BIO_read(bio, r, 1023);
+        p = BIO_read(bio, r, 1024);
         if(p <= 0) break;
         r[p] = 0;
         Feed+=string(r);
-        r[0]=0;
        
     }
+    Feed+='\n';
  
     BIO_free_all(bio);
 
@@ -403,8 +298,6 @@ return false;
 
 bool Connection::SSLdownload()
 {
-
-   
     BIO * bio;
     SSL * ssl;
     SSL_CTX * ctx;
@@ -413,7 +306,7 @@ bool Connection::SSLdownload()
 
 	string link;
 	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
-    char r[1024];
+    char r[1025];
 
 
     /* Set up the library */
@@ -497,11 +390,10 @@ bool Connection::SSLdownload()
     Feed="";
     for(;;)
     {
-        p = BIO_read(bio, r, 1023);
+        p = BIO_read(bio, r, 1024);
         if(p <= 0) break;
         r[p]=0;
         Feed+=string(r);
-       	r[0]=0;
     }
     
     /* Close the connection and free the context */
@@ -514,7 +406,6 @@ bool Connection::SSLdownload()
 	
 return false;
 }
-
 
 
 bool Connection::ConnectionCreate(char *argv[],int optind)
@@ -535,9 +426,6 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 	if(!ret)
 			printf("error to connect \n");
 	
-
-
-
 	}
 	else
 	{
@@ -698,20 +586,15 @@ if((optind+1!=argc and MyCommand.fargv.empty()))
 }
 	return true;
 }
-
-
-
-
-
-
 int main(int argc , char *argv[])
 {
 	Command MyCommand;
 	Connection Atom(MyCommand);
+	
   	if(!Atom.ArgumentParser(argc,argv))
   		return -1; 
-
-  	printf("%i \n",Atom.ConnectionCreate(argv,optind));
+	Atom.ConnectionCreate(argv,optind);
+  	printf("\n");
 
   	return 0;
 }
