@@ -497,15 +497,16 @@ bool Connection::URLparser()
 {
 
 unsigned int i=0;
+string protocol=MyCommand.Url;
 
 for(;i<MyCommand.Url.length();i++)
 {
-MyCommand.Url.at(i)=tolower(MyCommand.Url.at(i));
+protocol.at(i)=tolower(MyCommand.Url.at(i));
 }
 
 string url=MyCommand.Url;
 
-if(url.find("http://")==0)
+if(protocol.find("http://")==0)
 {
 	MyCommand.protocol=HTTP;
 	MyCommand.port="80";
@@ -513,13 +514,13 @@ if(url.find("http://")==0)
 }
 else
 {
-	if(url.find("https://")==0)
+	if(protocol.find("https://")==0)
 	{
 		MyCommand.protocol=HTTPS;
 		url.erase(url.begin(),url.begin()+8);
 		MyCommand.port="443";
 
-	}else if(url.find("://")!=std::string::npos)
+	}else if(protocol.find("://")!=std::string::npos)
 		return false;
 
 	else{
