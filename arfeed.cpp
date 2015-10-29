@@ -495,6 +495,14 @@ return "EOL";
 /**parsing URL address loading structure*/
 bool Connection::URLparser()
 {
+
+unsigned int i=0;
+
+for(;i<MyCommand.Url.length();i++)
+{
+MyCommand.Url.at(i)=tolower(MyCommand.Url.at(i));
+}
+
 string url=MyCommand.Url;
 
 if(url.find("http://")==0)
