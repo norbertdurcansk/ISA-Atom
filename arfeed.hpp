@@ -5,6 +5,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/bio.h>
+#include <ctype.h>
 #include <iostream>
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>

@@ -245,7 +245,7 @@ bool Connection::TCPdownload()
 	BIO * bio;
     int p;
 	string link;
-	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
+	link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+":"+MyCommand.port+"\r\nUser-Agent: ['ARFEED']\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
    
     char r[1025];
     /* Set up the library */
@@ -465,10 +465,14 @@ int counter=-1;
 while( getline(file, line)){
 counter++;	
 
+
 if(line.empty()){
 	line_counter++;
 	continue;
 }
+
+for(unsigned int i=0; i<line.length(); i++)
+     if(line.at(i) ==' ') line.erase(i,1);
 
 if (counter==line_counter)
 {
@@ -527,7 +531,15 @@ if((pos=url.find("/"))!=-1)
 
 if((pos=url.find(":"))!=-1)
 {
+
 	MyCommand.port=url.substr(pos+1);
+	//check if number valid 
+	for(unsigned i=0;i<MyCommand.port.length();i++)
+	{
+		if(MyCommand.port.at(i)<'0' || MyCommand.port.at(i)>'9' )
+			return false;
+	}
+
 	url.erase(url.begin()+pos,url.end());
 
 }
