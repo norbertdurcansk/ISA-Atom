@@ -1,6 +1,11 @@
+#ifndef RSSparser_HPP
+#define RSSparser_HPP
 #include "arfeed.hpp"
 
-int News(entry *);
+//count max time function
+int News(entry *); 
+
+//object for rss parsing 
 class RSS
 {
 	public:
@@ -11,3 +16,5 @@ class RSS
 		bool output(Connection*);
 
 };
+
+#endif

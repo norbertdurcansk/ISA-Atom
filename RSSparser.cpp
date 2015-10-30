@@ -1,26 +1,28 @@
-
 #include "RSSparser.hpp"
 
 using namespace std;
 
+//inicialize object 
 RSS::RSS(string RSSfeed)
 {
 	this->RSSfeed=RSSfeed;
 	return;	
 }
-
+/* Function parse  rss feed */
 bool RSS::RSSparse(xmlNodePtr root,Connection* Atom)
 {
 
-
-
 int pocet=0;
-Dochandling(root,&pocet,true,NULL);
-Atom->entryarr=new entry[pocet+5];
-int index=0;
-Dochandling(root,&index,false,Atom);
-output(Atom);
 
+Dochandling(root,&pocet,true,NULL); //get number 
+
+Atom->entryarr=new entry[pocet+5]; //create entries 
+
+int index=0;
+
+Dochandling(root,&index,false,Atom); //parse xml
+
+output(Atom);
 
 return true;
 
@@ -31,7 +33,7 @@ int x=0;
 int br=false;
 while(Atom->entryarr[x].type!="")
 {	
-	if(x>0 && (Atom->MyCommand.aflag==true || Atom->MyCommand.Tflag==true || Atom->MyCommand.Iflag==true || Atom->MyCommand.uflag==true))
+	if(x>1 && (Atom->MyCommand.aflag==true || Atom->MyCommand.Tflag==true || Atom->MyCommand.Iflag==true || Atom->MyCommand.uflag==true))
 		printf("\n");
 
 	if(Atom->entryarr[x].type=="feed")
@@ -62,7 +64,6 @@ while(Atom->entryarr[x].type!="")
 	x++;
 }
 return true;
-
 }
 
 bool RSS::Dochandling(xmlNodePtr root, int *index,bool search,Connection* Atom)
@@ -159,7 +160,6 @@ for(current=root->children;current!=NULL;current=current->next)
 	}
 }
 	return true;
-
 }
 
 int News(entry *arr)
@@ -198,6 +198,8 @@ int News(entry *arr)
 		x++;
 		bool changed=false;
 		pom1=arr[x].update;
+		if(arr[x].update=="")
+			continue;
 		year=atoi(pom1.substr(0,pom1.find("-")).c_str());
 		pom1=pom1.substr(pom1.find("-")+1);
 		month=atoi(pom1.substr(0,pom1.find("-")).c_str());
@@ -271,6 +273,6 @@ int News(entry *arr)
 		}
 
 	}
-
+	//return max value , if no update values return first :) 
 	return max;
 }

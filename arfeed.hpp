@@ -16,6 +16,8 @@
 
 using namespace std;
 
+
+// structure for output 
 typedef struct entry
 {
 std::string type="";
@@ -25,6 +27,7 @@ std::string	update="";
 std::string author="";
 }entry;
 
+//url parsed structure 
 typedef struct Command
 {
 std::string Url="";	
@@ -41,22 +44,21 @@ std::string Cargv="";
 std::string cargv="";
 }Command;
 
-int News(entry *);
-
-
+void HtmlTagremover(entry **);
+// main object used in our program 
 class Connection
 {
 	public:
-		BIO * bio;
-    	SSL * ssl;
-    	SSL_CTX * ctx;
-		int socket_id;
-		int line_counter;
-		Command MyCommand;
-		string Feed;
-		xmlDocPtr doc;
-		entry *entryarr;
-		string Feedtype;
+		BIO * bio; //bio struct ssl
+    	SSL * ssl; // ssl struct ssl
+    	SSL_CTX * ctx; //ctx context ssl
+		int line_counter; // su variable for feedfile parsing 
+		Command MyCommand; // structure described above 
+		string Feed; // Feed in string format 
+		xmlDocPtr doc; // pointer on doc 
+		entry *entryarr; // array of output entries 
+		string Feedtype; // type of the feed 
+		int Error_number=0; // errors 
 
 		Connection(Command);
 		bool ConnectionCreate(char **,int);
