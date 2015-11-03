@@ -684,7 +684,7 @@ bool Connection::ArgumentParser(int argc , char *argv[])
 int c ; // support variable 
 
 /* set flags and strings if pressed  */
-while ((c = getopt (argc, argv, "f:c:C:ITau")) != -1)
+while ((c = getopt (argc, argv, "f:c:C:lTau")) != -1)
     switch (c)
     {
 	      case 'f':
@@ -696,7 +696,7 @@ while ((c = getopt (argc, argv, "f:c:C:ITau")) != -1)
 	      case 'C':
 	        MyCommand.Cargv=optarg;
 	        break;
-		  case 'I':
+		  case 'l':
 		  	MyCommand.Iflag=true;
 		    break;
 		  case 'T':
