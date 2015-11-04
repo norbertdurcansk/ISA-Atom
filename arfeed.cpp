@@ -125,6 +125,7 @@ if(header.find("HTTP/1.1 200 OK")==string::npos)
 			// moved so  connect to moved link 
 			if(header.find("HTTP/1.1 301 Moved Permanently")==string::npos)
 			{
+
 				Error_number=10;
 				return false;
 			}
@@ -351,10 +352,7 @@ bool Connection::TCPdownload()
  
     BIO_free_all(bio);
     // parse feed file
-   if(Feedparser())
-		return true;
-
-return false;
+return Feedparser();
 }
 /*=============================*/
 //Function for https download 
@@ -411,14 +409,9 @@ bool Connection::SSLdownload()
  if(MyCommand.Cargv!="")
  	folder=MyCommand.Cargv;
 
-
-
-
   if(! SSL_CTX_load_verify_locations(ctx,file,folder.c_str()))
     {
-        ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        
+        SSL_CTX_free(ctx);      
         Error_number=7;
         return false; // cannot verify  location , we failed 
     }
@@ -454,7 +447,7 @@ bool Connection::SSLdownload()
         
         BIO_free_all(bio);
         SSL_CTX_free(ctx);
-        return false ;
+        return false;
     }
 
     /* Send the request */
@@ -475,10 +468,7 @@ bool Connection::SSLdownload()
     BIO_free_all(bio);
     SSL_CTX_free(ctx);
 
-   if(Feedparser())
-		return true;
-	
-return false;
+  return Feedparser();
 }
 
 
@@ -528,7 +518,6 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 			if(!ret)
 				fprintf(stderr, "Arfeed failure, error: %s\n",Error[Error_number ]);
 
-			sleep(0.0002);
 			i=1;
 		}
 	}
