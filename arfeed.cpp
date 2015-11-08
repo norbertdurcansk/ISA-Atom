@@ -495,6 +495,8 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 	}
 	else
 	{
+		if(argv[optind]!=NULL)
+			{Error_number=2;return false;}
 		//get the first address from feedfile
 		int i=0;
 		while((MyCommand.Url=FeedFileParser())!="EOL")	
