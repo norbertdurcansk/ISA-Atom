@@ -1,0 +1,31 @@
+*** IETF Agendas ***
+agenda-94-hopsrg
+Autor: Agenda-94-hopsrg Chairs
+
+*** The Daily Dose of IETF ***
+The Daily Dose of IETF - Issue 2456 - 2015-11-11
+
+*** Wikipedia  - Recent changes [en] ***
+K. M. George (politician)
+Autor: 37.106.11.174
+
+
+
+*** The Register - Data Centre ***
+Making movies: Sucking up on-prem files for cloud burst compute
+Autor: Chris Mellor
+
+*** The Register - Software ***
+Open to the core: MongoDB's enterprise push in 'joins' U-turn
+Autor: Matt Asay
+
+*** The Register - Hardware ***
+Nvidia unveils credit card-sized 'supercomputer' for portable AI
+Autor: Iain Thomson
+
+*** xkcd.com ***
+Linguistics Club
+
+*** What If? ***
+Proton Earth, Electron Moon
+Autor: xkcd

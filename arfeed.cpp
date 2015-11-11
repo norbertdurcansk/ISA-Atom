@@ -5,7 +5,7 @@
 #include "arfeed.hpp"
 #include <fstream>
 
-#include "RSSparser.hpp"
+#include "Timefun.hpp"
 #include "arfeed.hpp"
 
 const char* Error[]={"OK","Option Error","Wrong Input","Not supported protocol","No file to download","Wrong port","File is empty","Cannot load trust store location","Error attempting to connect","Certificate verification error"\
@@ -28,17 +28,6 @@ int i=*index;
 
 if(count) // we are counting no extracting 
 {
-	//rss feed find, change function
-	if(!(xmlStrcmp ( root->name, ( const xmlChar * ) "rss" ) ) )
-		{
-			Feedtype="rss";
-			return true;
-		}
-	if(!(xmlStrcmp ( root->name, ( const xmlChar * ) "rdf" ) ))
-	{
-		Feedtype="rss";
-		return true;
-	}
 	for(current=root->children;current!=NULL;current=current->next)
 	{	
 		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "entry" ) ) )  
@@ -64,14 +53,22 @@ else
 
 
 		i=*index;
-		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "id" ) ) ) 
-		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "link" ) ) ) 
+		{	
+
+			if(xmlHasProp(current,(const xmlChar*)"href")==NULL)
+				return false;
+
+			contt=xmlGetProp(current,(const xmlChar*)"href");
 			entryarr[i].url=(char*)contt;
-		
+			
 			xmlFree(contt);
 		}
-				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "title" ) ) ) 
-		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "title" ) ) ) 
+		{	
+			if(xmlIsBlankNode(current->xmlChildrenNode))
+				continue;
+			contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].title=(char*)contt;
 			
 			xmlFree(contt);
@@ -81,14 +78,20 @@ else
 		{	
 			if( !(xmlStrcmp ( root->name, ( const xmlChar * ) "author" ) ) )
 			{
+				if(xmlIsBlankNode(current->xmlChildrenNode))
+					continue;
 				contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 				entryarr[i].author=(char*)contt;
 			
 				xmlFree(contt);
 			}
 		}
-				if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "updated" ) ) ) 
-		{	contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
+		if ( !(xmlStrcmp ( current->name, ( const xmlChar * ) "updated" ) ) ) 
+		{	
+			if(xmlIsBlankNode(current->xmlChildrenNode))
+				continue;
+
+			contt=xmlNodeListGetString(doc,current->xmlChildrenNode,1);
 			entryarr[i].update=(char*)contt;
 
 			xmlFree(contt);
@@ -99,7 +102,12 @@ else
 		else
 			entryarr[i].type="entry";
 
-			Parse(current,index,count);
+		if(!Parse(current,index,count))
+		{
+			Error_number=12;
+			return false;
+		}
+
 		}
 	}
 }
@@ -202,22 +210,38 @@ int pocet=0;
 //give me number of entries to create 
 Parse(root,&pocet,true); // return number
 
-if(Feedtype=="rss") // if document is rss change  function 
+entryarr=new entry[pocet+5]; //create array of structures 
+
+//load entries
+int index=0;
+if(!Parse(root,&index,false))
 {
-	RSS rss(Feed);
-	return (rss.RSSparse(root,this));
+	Error_number=12;
+	return false;
 }
-else
-{
-	entryarr=new entry[pocet+5]; //create array of structures 
-	int index=0;
-	Parse(root,&index,false);
-}
+
 
 int x=0;
 int br=false;
+bool noname=false;
 // output
 HtmlTagremover(&entryarr);
+if(entryarr[0].author=="")
+	noname=true;
+
+//RFC rule 
+unsigned int val=1;
+while(entryarr[val].type=="entry")
+{
+	if((noname && entryarr[val].author=="") ||(entryarr[val].update=="") || (entryarr[val].title==""))
+		{
+			Error_number=12;
+			return false;
+		}
+
+	val++;
+}
+
 while(entryarr[x].type!="")
 {	
 	// if flags enabled new line each time
@@ -227,7 +251,14 @@ while(entryarr[x].type!="")
 	// name of the source 
 	if(entryarr[x].type=="feed")
 	{
-		printf("*** %s ***",entryarr[x].title.c_str() );
+		if(entryarr[x].title!="")
+			printf("*** %s ***",entryarr[x].title.c_str() );
+		else
+			{
+				Error_number=12;
+				return false;
+			}
+
 		x++;
 		continue;
 	}
@@ -241,19 +272,31 @@ while(entryarr[x].type!="")
 	printf("\n%s",entryarr[x].title.c_str() );
 
 	//if something then write 
-	if(MyCommand.aflag==true && entryarr[x].author!="" )
-		printf("\nAutor: %s",entryarr[x].author.c_str() );
+	if(MyCommand.aflag==true)
+	{	
+		if(entryarr[x].author!="" )
+			printf("\nAutor: %s",entryarr[x].author.c_str() );
+		else  //chyba u entry tak pridaj 
+			printf("\nAutor: %s",entryarr[0].author.c_str() );
+	}
 
-	if(MyCommand.Tflag==true && entryarr[x].update!="" )
-		printf("\nAktualizace: %s",entryarr[x].update.c_str() );
+	if(MyCommand.Tflag==true)
+	{
+		if(entryarr[x].update!="")
+			printf("\nAktualizace: %s",entryarr[x].update.c_str() );
+	}
 
-	if(MyCommand.uflag==true && entryarr[x].url!="" )
-		printf("\nURL: %s",entryarr[x].url.c_str() );
+	if(MyCommand.uflag==true)
+	{
+		if(entryarr[x].url!="" )
+			printf("\nURL: %s",entryarr[x].url.c_str() );
+	}
 	//br true , only one we need 
 	if(br)
 		break;
 	x++;
 }
+
 Feed="";
 //clear feed and continue
     xmlFreeDoc(doc);       // free document
