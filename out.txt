@@ -1,31 +1,34 @@
 *** IETF Agendas ***
 agenda-94-hopsrg
 Autor: Agenda-94-hopsrg Chairs
+Aktualizace: 2015-11-10T08:31:45Z
 
 *** The Daily Dose of IETF ***
 The Daily Dose of IETF - Issue 2456 - 2015-11-11
+Autor: Daily Dose
+Aktualizace: 2015-11-11T05:03:02Z
 
 *** Wikipedia  - Recent changes [en] ***
-K. M. George (politician)
-Autor: 37.106.11.174
+Francis Odega
+Autor: Ser Amantio di Nicolao
+Aktualizace: 2015-11-11T22:44:04Z
 
-
+*** The Register ***
+HDS flashifies VSP arrays for solid-state server farms
+Autor: Chris Mellor
+Aktualizace: 2015-11-11T21:52:51Z
 
 *** The Register - Data Centre ***
-Making movies: Sucking up on-prem files for cloud burst compute
+HDS flashifies VSP arrays for solid-state server farms
 Autor: Chris Mellor
-
-*** The Register - Software ***
-Open to the core: MongoDB's enterprise push in 'joins' U-turn
-Autor: Matt Asay
+Aktualizace: 2015-11-11T21:52:51Z
 
 *** The Register - Hardware ***
 Nvidia unveils credit card-sized 'supercomputer' for portable AI
 Autor: Iain Thomson
-
-*** xkcd.com ***
-Linguistics Club
+Aktualizace: 2015-11-11T02:03:07Z
 
 *** What If? ***
 Proton Earth, Electron Moon
 Autor: xkcd
+Aktualizace: 2015-09-18T00:00:00Z

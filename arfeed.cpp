@@ -535,6 +535,7 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 		
 	if(!ret)
 			return false;
+	else printf("\n");
 	}
 	else
 	{
@@ -542,14 +543,20 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 			{Error_number=2;return false;}
 		//get the first address from feedfile
 		int i=0;
+		bool errorflag=false;
 		while((MyCommand.Url=FeedFileParser())!="EOL")	
 		{	
 
 			Error_number=0;
 
 			if(i>0)
-				/** add \n for each source */
-				printf("\n\n");
+			{	/** add \n for each source */
+				
+				if(!errorflag)
+					{printf("\n");}
+				else errorflag=false;
+
+			}
 
 			if(!URLparser())  // error value saved 
 				return false;
@@ -561,7 +568,11 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 				ret=SSLdownload();
 
 			if(!ret)
-				fprintf(stderr, "Arfeed failure, error: %s\n",Error[Error_number ]);
+				{
+					fprintf(stderr, "Arfeed failure, error: %s\n",Error[Error_number ]);
+					errorflag=true;
+
+				}else printf("\n");
 
 			i=1;
 		}
@@ -787,6 +798,5 @@ int main(int argc , char *argv[])
   			return Atom.Error_number; //returning eror code 
   		}
 
-  	printf("\n"); //everything ok 
   	return 0;
 }
