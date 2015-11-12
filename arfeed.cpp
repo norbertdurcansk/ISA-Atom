@@ -306,6 +306,7 @@ while((*entryarr)[x].type!="")
 			if((*entryarr)[x].title.find('>')!=std::string::npos)
 				(*entryarr)[x].title.erase((*entryarr)[x].title.begin()+pos,(*entryarr)[x].title.begin()+pos1+1);
 			else break;
+			
 			continue;
 		}
 	    pos=(*entryarr)[x].author.find('<');
@@ -315,7 +316,7 @@ while((*entryarr)[x].type!="")
 			if((*entryarr)[x].author.find('>')!=std::string::npos)
 				(*entryarr)[x].author.erase((*entryarr)[x].author.begin()+pos,(*entryarr)[x].author.begin()+pos1+1);
 			else break;
-			
+
 			continue;
 		}
 
@@ -429,7 +430,7 @@ bool Connection::SSLdownload()
   ctx = SSL_CTX_new(SSLv23_client_method());
 
   char *file=NULL; //file not used yet 
-  string folder=DEFAULTDIR;  // set up our default dir  /ect/ssl/certs
+  char *folder=NULL;
 
  if(MyCommand.cargv!="")
  {
@@ -439,9 +440,17 @@ bool Connection::SSLdownload()
  }
  // change the folder for search 
  if(MyCommand.Cargv!="")
- 	folder=MyCommand.Cargv;
+ 	{	
+ 		folder=(char *)malloc(sizeof(char)*MyCommand.Cargv.length());
+  		strcpy(folder,MyCommand.Cargv.c_str());
+ 	}
+ if(MyCommand.cargv=="" && MyCommand.Cargv=="")
+ 	{
+ 		folder=(char *)malloc(sizeof(char)*strlen(DEFAULTDIR));
+  		strcpy(folder,DEFAULTDIR);
+  	}
 
-  if(! SSL_CTX_load_verify_locations(ctx,file,folder.c_str()))
+  if(! SSL_CTX_load_verify_locations(ctx,file,folder))
     {
         SSL_CTX_free(ctx);      
         Error_number=7;
