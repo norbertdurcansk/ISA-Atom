@@ -294,7 +294,7 @@ Feed="";
 void HtmlTagremover(entry **entryarr)
 {
 int x=1;
-	while((*entryarr)[x].type!="")
+while((*entryarr)[x].type!="")
 {
 	while(true)
 	{
@@ -305,6 +305,7 @@ int x=1;
 			int pos1=(*entryarr)[x].title.find('>',pos);
 			if((*entryarr)[x].title.find('>')!=std::string::npos)
 				(*entryarr)[x].title.erase((*entryarr)[x].title.begin()+pos,(*entryarr)[x].title.begin()+pos1+1);
+			else break;
 			continue;
 		}
 	    pos=(*entryarr)[x].author.find('<');
@@ -313,6 +314,8 @@ int x=1;
 			int pos1=(*entryarr)[x].author.find('>',pos);
 			if((*entryarr)[x].author.find('>')!=std::string::npos)
 				(*entryarr)[x].author.erase((*entryarr)[x].author.begin()+pos,(*entryarr)[x].author.begin()+pos1+1);
+			else break;
+			
 			continue;
 		}
 
