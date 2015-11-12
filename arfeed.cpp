@@ -223,24 +223,12 @@ if(!Parse(root,&index,false))
 
 int x=0;
 int br=false;
-bool noname=false;
+
+if(entryarr[0].author=="")
+	entryarr[0].author="\'Not found\'";
+
 // output
 HtmlTagremover(&entryarr);
-if(entryarr[0].author=="")
-	noname=true;
-
-//RFC rule 
-unsigned int val=1;
-while(entryarr[val].type=="entry")
-{
-	if((noname && entryarr[val].author=="") ||(entryarr[val].update=="") || (entryarr[val].title==""))
-		{
-			Error_number=12;
-			return false;
-		}
-
-	val++;
-}
 
 while(entryarr[x].type!="")
 {	
@@ -253,12 +241,6 @@ while(entryarr[x].type!="")
 	{
 		if(entryarr[x].title!="")
 			printf("*** %s ***",entryarr[x].title.c_str() );
-		else
-			{
-				Error_number=12;
-				return false;
-			}
-
 		x++;
 		continue;
 	}
@@ -284,12 +266,16 @@ while(entryarr[x].type!="")
 	{
 		if(entryarr[x].update!="")
 			printf("\nAktualizace: %s",entryarr[x].update.c_str() );
+		else
+			printf("\nAktualizace: \'Not found\'");
 	}
 
 	if(MyCommand.uflag==true)
 	{
 		if(entryarr[x].url!="" )
 			printf("\nURL: %s",entryarr[x].url.c_str() );
+		else
+			printf("\nURL: \'Not found\'");
 	}
 	//br true , only one we need 
 	if(br)
