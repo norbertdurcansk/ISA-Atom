@@ -1,0 +1,33 @@
+Projekt ISA 2015
+Norbert Durcansky 3BIT
+xdurca01
+Nazov: Čtečka novinek ve formátu Atom s podporou SSL/TLS (Ing. Polčák)
+-----------------------------------------------
+
+Odevzdane subory: 
+
+arfeed.cpp
+arfeed.hpp
+Makefile
+Timefun.cpp
+Timefun.hpp
+README
+-----------------------------------------------
+
+Použití: ./arfeed http://tools.ietf.org/agenda/atom | -f feedfile [-c certfile] [-C certaddr] [-l] [-T] [-a] [-u]
+
+
+Chyby - STDERR
+vypis - STDOUT
+
+Rozsireni: X
+
+Dalsi Informace:
+Pokud se autor nenajde v entry pouzije sa meno autora z elementu feed
+Pokud autor neni ani v entry ani v feed  vypise sa 'Not found'
+Pokud se nenajde updated,link element vypise sa do prislusneho pole 'Not found'
+
+Navratovy kody  su v rozmezi 0-12 zavislosti na typu chyby
+
+PLUS:
+Ctecka obsahuje aj HTML tag odstranovac ktory sa pouziva na elementy author a title 

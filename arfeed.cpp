@@ -1,17 +1,23 @@
+// ***********************************
+/* ISA PROJEKT (ATOM)
+* Norbert Durcansky xdurca01
+* 3BIT FIT VUTBR */
+// *************************************
 #include <cstring>
 #include <string>
 #include <getopt.h>
 #include <unistd.h>
 #include "arfeed.hpp"
 #include <fstream>
-
 #include "Timefun.hpp"
 #include "arfeed.hpp"
-
+#include <vector>
+//STDERR messages 
 const char* Error[]={"OK","Option Error","Wrong Input","Not supported protocol","No file to download","Wrong port","File is empty","Cannot load trust store location","Error attempting to connect","Certificate verification error"\
 ,"Cannot create bio structure","GET request error","Could not parse document (XML:error)"};
 
-// inicialize object  variables 
+vector<string>Queue;
+// inicialize object variables 
 Connection::Connection(Command MyCommand)
 {
 this->MyCommand=MyCommand;
@@ -26,6 +32,7 @@ xmlNodePtr current; // current node
 xmlChar* contt; // string value
 int i=*index;
 
+// if count == true  we are only counting objects
 if(count) // we are counting no extracting 
 {
 	for(current=root->children;current!=NULL;current=current->next)
@@ -131,12 +138,14 @@ px=(header.find("HTTP/1.1 200 OK")); // response
 if(header.find("HTTP/1.1 200 OK")==string::npos)
 	{	
 			// moved so  connect to moved link 
-			if(header.find("HTTP/1.1 301 Moved Permanently")==string::npos)
-			{
+		if(header.find("HTTP/1.1 301 Moved Permanently")==string::npos)
+		{
 
 				Error_number=10;
 				return false;
-			}
+		}
+		if(header.find("Location: ")==std::string::npos)
+			{Error_number=10;return false;}
 		// if moved parse location
 		string Location=header.substr(header.find("Location: ")+strlen("Location: "));
 		Location=Location.substr(0,Location.find('\x0d')).c_str();
@@ -165,30 +174,29 @@ if(px!=0)
 }
 
 // we got chunkie zombie mode  lets  do magic stuff 
-
 if(header.find("Transfer-Encoding: chunked")!=string::npos)
 {
-Feed=Feed.substr(Feed.find("\r\n\r\n")+4); // erase header 
-string number; // hex number of the first chunkie 
+	Feed=Feed.substr(Feed.find("\r\n\r\n")+4); // erase header 
+	string number; // hex number of the first chunkie 
 
-//for eternity do  magic 
-while(true){
+	//for eternity do  magic 
+	while(true){
 
-number=Feed.substr(0,Feed.find("\x0d\x0a")); // get hex number 
-unsigned int x = strtoul(number.c_str(), NULL, 16); // convert to int 
-if(x==0) // if last chunk break; 
-	break;
-Feed=Feed.substr(Feed.find("\x0d\x0a")+2); // remove dirt from our xml string 
-text+=Feed.substr(0,x); // add  to  string 
-Feed=Feed.substr(x+2); // remove and continue 
-}
-Feed=text; // return it back 
+		number=Feed.substr(0,Feed.find("\x0d\x0a")); // get hex number 
+		unsigned int x = strtoul(number.c_str(), NULL, 16); // convert to int 
+		if(x==0) // if last chunk break; 
+			break;
+		Feed=Feed.substr(Feed.find("\x0d\x0a")+2); // remove dirt from our xml string 
+		text+=Feed.substr(0,x); // add  to  string 
+		Feed=Feed.substr(x+2); // remove and continue 
+	}
+	Feed=text; // return it back 
 }
 
 //not chunked  good :) 
 else
 {
-Feed=Feed.substr(Feed.find("\r\n\r\n")+4); //just remove header part 
+	Feed=Feed.substr(Feed.find("\r\n\r\n")+4); //just remove header part 
 }
 
 // read mem xml 
@@ -223,13 +231,12 @@ if(!Parse(root,&index,false))
 
 int x=0;
 int br=false;
-
+// if no author provided then set not found 
 if(entryarr[0].author=="")
 	entryarr[0].author="\'Not found\'";
 
-// output
+// remove tags 
 HtmlTagremover(&entryarr);
-
 while(entryarr[x].type!="")
 {	
 	// if flags enabled new line each time
@@ -254,35 +261,41 @@ while(entryarr[x].type!="")
 	printf("\n%s",entryarr[x].title.c_str() );
 
 	//if something then write 
-	if(MyCommand.aflag==true)
-	{	
-		if(entryarr[x].author!="" )
-			printf("\nAutor: %s",entryarr[x].author.c_str() );
-		else  //chyba u entry tak pridaj 
-			printf("\nAutor: %s",entryarr[0].author.c_str() );
+	// write as  the input came 
+	unsigned int Q=0;
+	for(;Q<Queue.size();Q++)
+	{
+		if(MyCommand.aflag==true && Queue[Q]=="a")
+		{	
+			if(entryarr[x].author!="" )
+				printf("\nAutor: %s",entryarr[x].author.c_str() );
+			else  //chyba u entry tak pridaj 
+				printf("\nAutor: %s",entryarr[0].author.c_str() );
+		}
+
+		if(MyCommand.Tflag==true && Queue[Q]=="T")
+		{
+			if(entryarr[x].update!="")
+				printf("\nAktualizace: %s",entryarr[x].update.c_str() );
+			else
+				printf("\nAktualizace: \'Not found\'");
+		}
+
+		if(MyCommand.uflag==true && Queue[Q]=="u")
+		{
+			if(entryarr[x].url!="" )
+				printf("\nURL: %s",entryarr[x].url.c_str() );
+			else
+				printf("\nURL: \'Not found\'");
+		}
 	}
 
-	if(MyCommand.Tflag==true)
-	{
-		if(entryarr[x].update!="")
-			printf("\nAktualizace: %s",entryarr[x].update.c_str() );
-		else
-			printf("\nAktualizace: \'Not found\'");
-	}
-
-	if(MyCommand.uflag==true)
-	{
-		if(entryarr[x].url!="" )
-			printf("\nURL: %s",entryarr[x].url.c_str() );
-		else
-			printf("\nURL: \'Not found\'");
-	}
 	//br true , only one we need 
 	if(br)
 		break;
 	x++;
 }
-
+// init Feed string 
 Feed="";
 //clear feed and continue
     xmlFreeDoc(doc);       // free document
@@ -329,9 +342,20 @@ return;
 /*=============================*/
 //Function for http download 
 /*=============================*/
+/** IBM third party code */
+/*The party providing the Content (the "Provider") grants
+You a nonexclusive, worldwide, irrevocable, royalty-free,
+copyright license to edit, copy, reproduce, publish,
+publicly display and/or perform, format, modify and/or
+make derivative works of, translate, re-arrange, and
+distribute the Content or any portions thereof 
+and to sublicense any or all such rights and to permit sublicensees
+to further sublicense such rights, for both commercial and non-commercial
+use, provided You abide by the terms of this Agreement.
+*/
 bool Connection::TCPdownload()
 {
-	BIO * bio;
+	BIO * bio; // init bio structure 
     int p;
     //get request 
 	string link="GET /"+MyCommand.file+" HTTP/1.1\r\nHost: "+MyCommand.server+":"+MyCommand.port+"\r\nUser-Agent: ARFEED-xdurca01\r\nAccept: application/xml;charset=UTF-8\r\nAccept-Charset: UTF-8\r\nAccept-Language: en-US,en;q=0.5\r\nConnection: Close\r\n\r\n";
@@ -390,12 +414,20 @@ return Feedparser();
 /*=============================*/
 //Function for https download 
 /*=============================*/
+/** IBM third party code */
+/*The party providing the Content (the "Provider") grants
+You a nonexclusive, worldwide, irrevocable, royalty-free,
+copyright license to edit, copy, reproduce, publish,
+publicly display and/or perform, format, modify and/or
+make derivative works of, translate, re-arrange, and
+distribute the Content or any portions thereof 
+and to sublicense any or all such rights and to permit sublicensees
+to further sublicense such rights, for both commercial and non-commercial
+use, provided You abide by the terms of this Agreement.
+*/
 bool Connection::SSLdownload()
-
 {
-
-	// Using IBM  code for connection 
-
+	
     BIO * bio;  // create bio struct 
     SSL * ssl; //create ssl struct 
     SSL_CTX * ctx; //create context 
@@ -512,28 +544,28 @@ bool Connection::SSLdownload()
   return Feedparser();
 }
 
-
+//Create connection object 
 bool Connection::ConnectionCreate(char *argv[],int optind)
 { 
 	// use url or feed file 
 	if(MyCommand.fargv.empty())
 	{
-	Error_number=0;
-	// Saving URL address 
-	MyCommand.Url=argv[optind];
-	if(!URLparser())  // something wrong happend return false , code already saved 
-		return false;
-
-		int ret;
-
-	if(MyCommand.protocol==HTTP)
-		ret=TCPdownload();
-	else
-		ret=SSLdownload();
-		
-	if(!ret)
+		Error_number=0;
+		// Saving URL address 
+		MyCommand.Url=argv[optind];
+		if(!URLparser())  // something wrong happend return false , code already saved 
 			return false;
-	else printf("\n");
+
+			int ret;
+
+		if(MyCommand.protocol==HTTP)
+			ret=TCPdownload();
+		else
+			ret=SSLdownload();
+			
+		if(!ret)
+				return false;
+		else printf("\n");
 	}
 	else
 	{
@@ -744,12 +776,15 @@ while ((c = getopt (argc, argv, "f:c:C:lTau")) != -1)
 		    break;
 		  case 'T':
 		  	MyCommand.Tflag=true;
+		  	Queue.push_back("T");
 		    break;
 		  case 'a':
 		  	MyCommand.aflag=true;
+		  	Queue.push_back("a");
 		    break;
 		  case 'u':
 		 	MyCommand.uflag=true;
+		 	Queue.push_back("u");
 		    break;
 	      case '?':
 	        if ((optopt == 'f')  || (optopt == 'c')|| (optopt == 'C'))
@@ -773,8 +808,6 @@ if((optind+1!=argc and MyCommand.fargv.empty()))
 }
 	return true;
 }
-
-
 /*======================================*/
 /*Main function */
 /*======================================*/

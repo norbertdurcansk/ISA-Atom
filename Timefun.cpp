@@ -1,7 +1,7 @@
 #include "Timefun.hpp"
 
 using namespace std;
-
+// find the latest entry 
 int News(entry *arr)
 {
 	int x =1;

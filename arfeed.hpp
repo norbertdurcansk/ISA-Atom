@@ -16,7 +16,6 @@
 
 using namespace std;
 
-
 // structure for output 
 typedef struct entry
 {
@@ -71,11 +70,4 @@ class Connection
 		bool Parse(xmlNodePtr,int*,bool);
 };
 
-/**
-HEADER FILE
-*/
-
-/**
-Program commandline structure for ATOM-file requests
-*/
 #endif

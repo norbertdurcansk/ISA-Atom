@@ -1,5 +1,5 @@
 CC = g++ 
-CFLAGS  = -std=c++11 -finput-charset=UTF-8 -Wall -Wextra -pedantic 
+CFLAGS  = -std=c++11 -Wall -Wextra -pedantic 
 
 default: arfeed
 
