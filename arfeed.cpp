@@ -574,7 +574,6 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 		bool errorflag=false;
 		while((MyCommand.Url=FeedFileParser())!="EOL")	
 		{	
-
 			Error_number=0;
 
 			if(i>0)
@@ -604,6 +603,7 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 
 			i=1;
 		}
+		exit(10);
 	}
 	//everything  was ok  
 	return true;		
@@ -642,7 +642,8 @@ string Connection::FeedFileParser()
 		     if(line.at(i) ==' ') line.erase(i,1);
 
 		/* line empty skip */
-		if(line.empty()){
+		if(line.empty() && counter==line_counter)
+		{
 			line_counter++;
 			continue;
 		}
@@ -654,7 +655,8 @@ string Connection::FeedFileParser()
 				line_counter++;
 				continue;
 			}
-			else{
+			else
+			{
 				line_counter++;
 				return line;
 			}
