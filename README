@@ -12,6 +12,7 @@ Makefile
 Timefun.cpp
 Timefun.hpp
 README
+manual.pdf
 -----------------------------------------------
 
 Použití: ./arfeed http://tools.ietf.org/agenda/atom | -f feedfile [-c certfile] [-C certaddr] [-l] [-T] [-a] [-u]
