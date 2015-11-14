@@ -24,7 +24,7 @@ Rozsireni: X
 
 Dalsi Informace:
 Pokud se autor nenajde v entry pouzije sa meno autora z elementu feed
-Pokud autor neni ani v entry ani v feed  vypise sa 'Not found'
+Pokud autor neni ani v entry ani v feed  vypise se 'Not found'
 Pokud se nenajde updated,link element vypise sa do prislusneho pole 'Not found'
 
 Navratovy kody  su v rozmezi 0-12 zavislosti na typu chyby
