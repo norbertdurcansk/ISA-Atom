@@ -637,15 +637,15 @@ string Connection::FeedFileParser()
 	while( getline(file, line))
 	{
 		counter++;	
+		/* erase all whitespaces , for sure :) */
+		for(unsigned int i=0; i<line.length(); i++)
+		     if(line.at(i) ==' ') line.erase(i,1);
 
 		/* line empty skip */
 		if(line.empty()){
 			line_counter++;
 			continue;
 		}
-		/* erase all whitespaces , for sure :) */
-		for(unsigned int i=0; i<line.length(); i++)
-		     if(line.at(i) ==' ') line.erase(i,1);
 		/** everytime return new url address */
 		if (counter==line_counter)
 		{
@@ -655,7 +655,7 @@ string Connection::FeedFileParser()
 				continue;
 			}
 			else{
-				
+				line_counter++;
 				return line;
 			}
 		}
@@ -663,7 +663,6 @@ string Connection::FeedFileParser()
 	//nothing so return
 	return "EOL";
 }
-
 /*======================================*/
 /**parsing URL address loading structure*/
 /*======================================*/
