@@ -5,7 +5,6 @@
 // *************************************
 #include <cstring>
 #include <string>
-#include <getopt.h>
 #include <unistd.h>
 #include "arfeed.hpp"
 #include <fstream>
