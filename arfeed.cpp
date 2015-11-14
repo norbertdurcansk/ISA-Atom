@@ -370,15 +370,9 @@ bool Connection::TCPdownload()
 
     /* Create and setup the connection */
     string hey=MyCommand.server+":"+MyCommand.port;
-    char* con = new char[hey.length()];
-    unsigned int cc=0;
-    for(;cc<hey.length();cc++)
-    {
-    	con[cc]=hey.at(cc);
-    }
-    con[cc]='\0';
+    
  
-    bio = BIO_new_connect(con);
+    bio = BIO_new_connect((char*)hey.c_str());
     if(bio == NULL) 
     {
     	 Error_number=9;
@@ -449,15 +443,8 @@ bool Connection::SSLdownload()
 
    /* Create and setup the connection */
     string hey=MyCommand.server+":"+MyCommand.port;  // usign structure loaded below
-    char* con = new char[hey.length()];
-    unsigned int cc=0;
-    for(;cc<hey.length();cc++)
-    {
-    	con[cc]=hey.at(cc);
-    }
-    con[cc]='\0';
+    
 
-  
  	 /* Set up the SSL context */
   	ctx = SSL_CTX_new(SSLv23_client_method());
 
@@ -498,12 +485,11 @@ bool Connection::SSLdownload()
 
     /* Create and setup the connection */
 
-    BIO_set_conn_hostname(bio,con);
+    BIO_set_conn_hostname(bio,(char*)hey.c_str());
 
     if(BIO_do_connect(bio) <= 0)
     {
         Error_number=8;
-        
         BIO_free_all(bio); // clear structures 
         SSL_CTX_free(ctx);
         return false;
@@ -575,7 +561,6 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 		while((MyCommand.Url=FeedFileParser())!="EOL")	
 		{	
 			Error_number=0;
-
 			if(i>0)
 			{	/** add \n for each source */
 				
@@ -603,7 +588,6 @@ bool Connection::ConnectionCreate(char *argv[],int optind)
 
 			i=1;
 		}
-		exit(10);
 	}
 	//everything  was ok  
 	return true;		
